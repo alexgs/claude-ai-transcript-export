@@ -2,6 +2,10 @@
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { UsageError } from '@alexgsdev/claude-code-transcript-export';
+import { readExport, type ExportInput } from '../input.js';
+import { formatProbe, probeConversations } from '../probe.js';
+import { parseArgs } from './args.js';
 
 /**
  * The package's own version, read rather than duplicated.
@@ -22,36 +26,77 @@ Usage:
   caitx probe <export>       Report the observed export schema
   caitx init                 Write a .caitx.yaml here
 
+<export> is an export directory as downloaded, one of its zips, or a bare
+conversations file.
+
+Options:
+  --json                     Emit the result as JSON
   -h, --help                 This message
   -v, --version              Print the version
 
-Not implemented yet: every command above. See docs/plans/01-implementation-plan.md.`;
-
-const COMMANDS = new Set(['extract', 'list', 'probe', 'init']);
+Implemented so far: probe.`;
 
 export function main(
   argv: string[],
   io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream },
 ): number {
-  const [first] = argv;
+  try {
+    const options = parseArgs(argv);
 
-  if (first === undefined || first === '-h' || first === '--help') {
-    io.stdout.write(`${USAGE}\n`);
-    return 0;
-  }
+    if (options.command === 'help') {
+      io.stdout.write(`${USAGE}\n`);
+      return 0;
+    }
+    if (options.command === 'version') {
+      io.stdout.write(`${VERSION}\n`);
+      return 0;
+    }
 
-  if (first === '-v' || first === '--version') {
-    io.stdout.write(`${VERSION}\n`);
-    return 0;
-  }
+    if (options.command === 'probe') {
+      const input = readExport(options.input as string);
+      // stderr, so `--json` output stays parseable.
+      for (const warning of input.warnings)
+        io.stderr.write(`caitx: warning: ${warning}\n`);
+      const report = probeConversations(input.conversations);
 
-  if (COMMANDS.has(first)) {
-    io.stderr.write(`caitx: \`${first}\` is not implemented yet.\n`);
+      if (options.json) {
+        io.stdout.write(
+          `${JSON.stringify({ export: describe(input), ...report }, null, 2)}\n`,
+        );
+      } else {
+        io.stdout.write(`export: ${input.path}\n`);
+        io.stdout.write(
+          `form: ${input.form}${input.createdAt ? `, created ${input.createdAt}` : ''}\n`,
+        );
+        io.stdout.write(`projects: ${input.projectUuids.length}\n\n`);
+        io.stdout.write(`${formatProbe(report)}\n`);
+      }
+      return 0;
+    }
+
+    io.stderr.write(`caitx: \`${options.command}\` is not implemented yet.\n`);
+    return 1;
+  } catch (cause) {
+    if (cause instanceof UsageError) {
+      io.stderr.write(`caitx: ${cause.message}\n`);
+      return 2;
+    }
+    io.stderr.write(
+      `caitx: ${cause instanceof Error ? (cause.stack ?? cause.message) : String(cause)}\n`,
+    );
     return 1;
   }
+}
 
-  io.stderr.write(`caitx: unknown command \`${first}\`. Run \`caitx --help\`.\n`);
-  return 2;
+/** The export's identity, for `--json`, without its conversations. */
+function describe(input: ExportInput) {
+  return {
+    path: input.path,
+    form: input.form,
+    createdAt: input.createdAt,
+    projects: input.projectUuids.length,
+    warnings: input.warnings,
+  };
 }
 
 /**
