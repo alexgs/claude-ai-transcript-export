@@ -204,7 +204,10 @@ package would notice has changed.
 
    This deletes the changesets, bumps the version in `package.json` and
    `package-lock.json`, and prepends an entry to `CHANGELOG.md`. Edit the
-   entry if it reads badly, then commit.
+   entry if it reads badly, then commit everything it changed:
+   `git add -A` rather than `git commit -a`, which skips new files. The first
+   release lost its `CHANGELOG.md` that way, since the file did not exist
+   until `release:version` created it.
 
 2. Open a PR from the release branch to `develop` and merge it.
 
@@ -225,31 +228,28 @@ trust is bound to that filename, so don't rename it. It runs on Node 24 on
 purpose: trusted publishing needs npm 11.5.1 or later, which no Node 22 release
 bundles.
 
-**The first release** cannot go through the workflow alone, because trusted
-publishing is configured on a package's npm settings page, and the package
-does not exist on npm until it has been published once. As understood when
-this was written, the first time goes like this; check npm's documentation on
-trusted publishing before relying on it.
+**The first release** could not go through the workflow alone, because
+trusted publishing is configured on a package's npm settings page, and the
+package did not exist on npm until it had been published once. This is how
+it went, for anyone setting up the same arrangement; check npm's
+documentation on trusted publishing before relying on it.
 
-1. Do steps 1 to 3 above for `0.1.0`, and merge the PR to `main`. The
-   workflow's publish step fails, since nothing trusts it yet. That is
-   expected, and it pushes no tag.
-2. From that merged commit on `main`, publish by hand:
-
-   ```sh
-   git switch main && git pull
-   npm ci && npm test
-   npm login
-   npm publish --access public
-   ```
-
-   This first version has no provenance statement, since provenance can only
-   be generated in CI.
-3. On npmjs.com, open the package's settings and add a trusted publisher:
-   GitHub Actions, repository `alexgs/claude-ai-transcript-export`, workflow
-   `release.yml`.
-4. Re-run the failed release workflow from the Actions tab. It finds `0.1.0`
-   already on npm, skips the publish, and pushes the `v0.1.0` tag.
+1. Steps 1 to 3 above for `0.1.0`, then the merge to `main`. The workflow's
+   publish step failed, since nothing trusted it yet, and pushed no tag.
+   (The release guard had to learn that `main` holds no `package.json` before
+   a first release, and compares against `0.0.0` then.)
+2. `0.1.0` was published by hand, with `npm publish --access public`, from
+   the merged commit on `main`. It has no provenance statement, since
+   provenance can only be generated in CI.
+3. A trusted publisher was added on npmjs.com: GitHub Actions, repository
+   `alexgs/claude-ai-transcript-export`, workflow `release.yml`.
+4. Re-running the failed workflow found `0.1.0` already on npm, skipped the
+   publish, and pushed the `v0.1.0` tag.
+5. **That does not validate the trusted publisher.** npm marks a new one
+   "pending validation" until a publish actually arrives through it, and
+   gives a deadline, about two days, for that to happen. The tag-only rerun in
+   step 4 publishes nothing, so a second release, `0.1.1`, went through the
+   whole workflow to validate it.
 
 Every release after that is steps 1 to 4 above.
 
