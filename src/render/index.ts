@@ -4,6 +4,7 @@ import {
   type SessionTurn,
 } from '@alexgsdev/claude-code-transcript-export';
 import type { IndexConfig } from '../config.js';
+import type { ContentPolicy } from '../types.js';
 import { conversationUrl } from '../conversation.js';
 
 /** A regenerated conversation's row. */
@@ -23,6 +24,11 @@ export interface RenderIndexOptions {
   carried: CarriedTranscript[];
   /** Uuids the config withholds. */
   excluded: string[];
+  /**
+   * The tool policy the transcripts were written under, so the index describes
+   * them truthfully. Absent means the default: `tools: strip`, no `keepTools`.
+   */
+  policy?: Pick<ContentPolicy, 'tools' | 'keepTools'>;
 }
 
 interface Row {
@@ -36,6 +42,67 @@ interface Row {
 
 const cell = (s: string) => s.replace(/\|/g, '\\|');
 const linkText = (s: string) => cell(s).replace(/([[\]])/g, '\\$1');
+
+/** Greedy word wrap, for prose whose wording depends on configuration. */
+function wrap(text: string, width = 78): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    if (line !== '' && line.length + 1 + word.length > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line === '' ? word : `${line} ${word}`;
+    }
+  }
+  if (line !== '') lines.push(line);
+  return lines;
+}
+
+const RULES_START =
+  'Each transcript is one branch of its conversation. Where a reply was edited ' +
+  'or regenerated, the latest version is shown, and `branches_dropped` in the ' +
+  'frontmatter says how many others there were. A turn is one exchange, with ' +
+  'consecutive assistant messages joined.';
+const RULES_END = 'Turn numbers are stable only while these rules are.';
+
+/**
+ * What the transcripts are, in a paragraph that has to match the tool policy
+ * they were written under. It once said tool calls were stripped whatever the
+ * config, which was false under `keepTools` (the named tools are kept) and
+ * under `tools: keep` (everything is, and no document has a final version).
+ *
+ * The default wording is kept line for line as it was, so upgrading does not
+ * rewrite every existing index; the other wordings are wrapped.
+ */
+function rulesParagraph(policy: RenderIndexOptions['policy']): string[] {
+  const keepTools = policy?.keepTools ?? [];
+  if (policy?.tools !== 'keep' && keepTools.length === 0) {
+    return [
+      'Each transcript is one branch of its conversation. Where a reply was edited',
+      'or regenerated, the latest version is shown, and `branches_dropped` in the',
+      'frontmatter says how many others there were. A turn is one exchange, with',
+      'consecutive assistant messages joined. Tool calls are stripped, except for',
+      'documents Claude wrote, which appear in their final version, and questions it',
+      'asked. Turn numbers are stable only while these rules are.',
+    ];
+  }
+  const tools =
+    policy?.tools === 'keep'
+      ? 'Every tool call is kept, with its result, as JSON; documents Claude wrote ' +
+        'appear as the calls that wrote and edited them, not in a final version.'
+      : 'Tool calls are stripped, except for documents Claude wrote, which appear ' +
+        'in their final version, questions it asked, and calls to ' +
+        `${listOf(keepTools.map((t) => `\`${t}\``))}, which are kept with their ` +
+        'results as JSON.';
+  return wrap(`${RULES_START} ${tools} ${RULES_END}`);
+}
+
+/** `a`, `a and b`, `a, b and c`. */
+function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
 
 /**
  * The generated index (specification §8.4). Pure.
@@ -86,12 +153,7 @@ export function renderIndex(
   if (preamble !== null && preamble.trim() !== '') lines.push(preamble.trim(), '');
 
   lines.push(
-    'Each transcript is one branch of its conversation. Where a reply was edited',
-    'or regenerated, the latest version is shown, and `branches_dropped` in the',
-    'frontmatter says how many others there were. A turn is one exchange, with',
-    'consecutive assistant messages joined. Tool calls are stripped, except for',
-    'documents Claude wrote, which appear in their final version, and questions it',
-    'asked. Turn numbers are stable only while these rules are.',
+    ...rulesParagraph(options.policy),
     '',
     parityStatement(entries, options.carried),
     '',

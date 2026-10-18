@@ -172,6 +172,17 @@ describe('extract', () => {
     expect(index).toContain('One row below was read back');
   });
 
+  it('describes keepTools in the index it writes', () => {
+    const { go, read } = setup(
+      `${PROJECT}keepTools: [conversation_search]\n`,
+      `${A}\n`,
+    );
+    go([conv(A, 'Alpha')]);
+    expect(read('index.md').replace(/\n/g, ' ')).toContain(
+      'calls to `conversation_search`',
+    );
+  });
+
   it('names an untitled conversation from its first human line, marked as derived', () => {
     const { go, files, read } = setup(PROJECT, `${A}\n`);
     go([conv(A, '')]);
