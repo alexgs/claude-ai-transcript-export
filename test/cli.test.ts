@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import { createRequire } from 'node:module';
+import { toLocalDate } from '@alexgsdev/claude-code-transcript-export';
 import { VERSION, main } from '../src/cli/index.js';
-import { buildExport } from './helpers.js';
+import { buildExport, tempDir } from './helpers.js';
 
-function run(argv: string[]) {
+export function run(argv: string[], cwd = tempDir()) {
   let out = '';
   let err = '';
   const sink = (append: (s: string) => void) =>
@@ -17,6 +20,7 @@ function run(argv: string[]) {
   const code = main(argv, {
     stdout: sink((s) => (out += s)),
     stderr: sink((s) => (err += s)),
+    cwd,
   });
   return { code, out, err };
 }
@@ -39,7 +43,7 @@ describe('caitx', () => {
   });
 
   it('says a known command is not implemented yet', () => {
-    const result = run(['list', buildExport()]);
+    const result = run(['extract', buildExport()]);
     expect(result.code).toBe(1);
     expect(result.err).toContain('not implemented yet');
   });
@@ -85,5 +89,60 @@ describe('caitx probe', () => {
 
   it('names an unrecognized flag', () => {
     expect(run(['probe', buildExport(), '--jsno']).err).toContain('`--jsno`');
+  });
+});
+
+describe('caitx list', () => {
+  const C1 = 'c0ffee00-0000-4000-8000-000000000001';
+  // Local dates, as `list` shows them: hardcoding one breaks in a timezone
+  // where the fixture's instant falls on another day.
+  const created = toLocalDate('2026-08-24T12:00:00.000000Z');
+  const dayAfter = toLocalDate('2026-08-25T12:00:00.000000Z');
+
+  it('shows every conversation as not selected when there is no config', () => {
+    const result = run(['list', buildExport()]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(`${C1}  ${created}`);
+    expect(result.out).toContain('not selected');
+    expect(result.err).toContain('nothing is selected');
+  });
+
+  it('marks a project conversation and prints the project count', () => {
+    const root = tempDir();
+    writeFileSync(
+      join(root, '.caitx.yaml'),
+      'projects:\n  - name: Fixture\n    list: p.txt\n',
+    );
+    writeFileSync(join(root, 'p.txt'), `https://claude.ai/chat/${C1}\n`);
+    const result = run(['list', buildExport()], root);
+    expect(result.out).toContain('selected: Fixture');
+    expect(result.err).toContain(
+      'Fixture: 1 conversations (1 in this export, 0 carried)',
+    );
+  });
+
+  it('fails with exit 2 on a link-list uuid that resolves to nothing', () => {
+    const root = tempDir();
+    writeFileSync(
+      join(root, '.caitx.yaml'),
+      'projects:\n  - name: Fixture\n    list: p.txt\n',
+    );
+    writeFileSync(join(root, 'p.txt'), 'eeeeeeee-0000-4000-8000-00000000000e\n');
+    const result = run(['list', buildExport()], root);
+    expect(result.code).toBe(2);
+    expect(result.err).toContain('eeeeeeee');
+  });
+
+  it('filters with --since and --unselected, and prints uuids with --format list', () => {
+    const exportDir = buildExport();
+    expect(run(['list', exportDir, '--since', dayAfter]).out).toBe('');
+    expect(
+      run(['list', exportDir, '--since', created, '--unselected', '--format', 'list'])
+        .out,
+    ).toBe(`${C1}\n`);
+  });
+
+  it('rejects a malformed --since', () => {
+    expect(run(['list', buildExport(), '--since', '8/24']).code).toBe(2);
   });
 });

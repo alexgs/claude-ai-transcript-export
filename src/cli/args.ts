@@ -7,6 +7,14 @@ export interface Options {
   /** The export, for every command but `init`, `help` and `version`. */
   input?: string;
   json: boolean;
+  /** `--config <path>`: exactly this file, no discovery. */
+  config?: string;
+  /** `list --since <YYYY-MM-DD>`. */
+  since?: string;
+  /** `list --unselected`. */
+  unselected: boolean;
+  /** `list --format table|list`. */
+  format: 'table' | 'list';
 }
 
 const COMMANDS = new Set<string>(['extract', 'list', 'probe', 'init']);
@@ -17,14 +25,53 @@ const COMMANDS = new Set<string>(['extract', 'list', 'probe', 'init']);
  * cctx.
  */
 export function parseArgs(argv: string[]): Options {
-  const options: Options = { command: 'extract', json: false };
+  const options: Options = {
+    command: 'extract',
+    json: false,
+    unselected: false,
+    format: 'table',
+  };
   const positionals: string[] = [];
 
-  for (const arg of argv) {
+  const value = (flag: string, i: number): string => {
+    const v = argv[i + 1];
+    if (v === undefined || v.startsWith('-'))
+      throw new UsageError(`\`${flag}\` needs a value.`);
+    return v;
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] as string;
     if (arg === '-h' || arg === '--help') return { ...options, command: 'help' };
     if (arg === '-v' || arg === '--version') return { ...options, command: 'version' };
     if (arg === '--json') {
       options.json = true;
+      continue;
+    }
+    if (arg === '--unselected') {
+      options.unselected = true;
+      continue;
+    }
+    if (arg === '--config') {
+      options.config = value(arg, i++);
+      continue;
+    }
+    if (arg === '--since') {
+      const since = value(arg, i++);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) {
+        throw new UsageError(
+          `\`--since\` takes a date as YYYY-MM-DD, got \`${since}\`.`,
+        );
+      }
+      options.since = since;
+      continue;
+    }
+    if (arg === '--format') {
+      const format = value(arg, i++);
+      if (format !== 'table' && format !== 'list') {
+        throw new UsageError('`--format` is one of table | list.');
+      }
+      options.format = format;
       continue;
     }
     if (arg.startsWith('-')) throw new UsageError(`unrecognized argument \`${arg}\`.`);
