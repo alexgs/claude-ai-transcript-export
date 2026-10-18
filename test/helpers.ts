@@ -24,6 +24,16 @@ export interface BuildExportOptions {
    * missing-part check (specification §4.1).
    */
   missing?: string[];
+  /** Write no `manifest.json`. */
+  noManifest?: boolean;
+  /** The conversations entry's name inside its zip. */
+  conversationsEntry?: string;
+  /**
+   * Further files in the export directory, listed in the manifest by the
+   * category their name implies: a `light_metadata-000.zip` that is not a zip,
+   * to prove it is never opened.
+   */
+  extra?: Record<string, Uint8Array | string>;
 }
 
 /**
@@ -43,7 +53,9 @@ export function buildExport(options: BuildExportOptions = {}): string {
 
   const parts: Record<string, Record<string, Uint8Array>> = {
     'conversations-000.zip': {
-      'conversations.json': strToU8(JSON.stringify(conversations)),
+      [options.conversationsEntry ?? 'conversations.json']: strToU8(
+        JSON.stringify(conversations),
+      ),
     },
     'projects-000.zip': Object.fromEntries(
       projects.map((p) => [`projects/${p.uuid}.json`, strToU8(JSON.stringify(p))]),
@@ -55,10 +67,17 @@ export function buildExport(options: BuildExportOptions = {}): string {
     writeFileSync(join(dir, name), zipSync(entries));
   }
 
+  for (const [name, contents] of Object.entries(options.extra ?? {})) {
+    writeFileSync(join(dir, name), contents);
+  }
+
+  if (options.noManifest) return dir;
+
+  const listed = [...Object.keys(parts), ...Object.keys(options.extra ?? {})];
   const manifest = {
     created_at: '2026-10-18T13:26:16.851801+00:00',
-    total_files: Object.keys(parts).length,
-    data_files: Object.keys(parts).map((filename, batch_index) => ({
+    total_files: listed.length,
+    data_files: listed.map((filename, batch_index) => ({
       batch_index,
       category: filename.replace(/-\d+\.zip$/, ''),
       part: 0,
