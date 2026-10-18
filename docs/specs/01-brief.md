@@ -119,7 +119,7 @@ conversation URL), `sessionFilename`, `slugify`, `writeIfChanged`,
 and `toLocalDate`. It writes its own index, since `renderIndex`'s prose is
 about Claude Code.
 
-It needs the first `cctx` release after 0.1.9, which carries those API changes.
+It needs `cctx` 0.2.0 or later, the release that carries those API changes.
 
 The README's "Conversations from somewhere else" section in that repository is
 close to `caitx`'s write loop already.

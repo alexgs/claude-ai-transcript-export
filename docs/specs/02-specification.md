@@ -453,9 +453,9 @@ Claude Code (`cctx` spec 05). It contains:
   deleted on claude.ai disappears from the index at the next export
   (`cctx` spec 03).
 
-A carried row needs its project for the project column. `CarriedTranscript`
-in the `cctx` library carries only id, title, created, turns, parity and
-images, so this needs one change there (§12).
+A carried row gets its project for the project column from
+`CarriedTranscript.frontmatter`, added to the `cctx` library in 0.2.0 for this
+purpose (§12).
 
 ## 9. Idempotence
 
@@ -536,11 +536,10 @@ the API documented in that package's README and its spec 05. It uses
 `toLocalDate`, `writeIfChanged`, `writePlainIfChanged`, `pruneRenamed`,
 `pruneExcluded`, `readTranscripts`, `parityReport` and `parityStatement`.
 
-**One change to that library is needed.** `parseTranscript` reads the
-frontmatter whole but returns only the fields `cctx` uses. It should also
-return the rest, for example as `fields: Record<string, unknown>`, so a
-consumer can read back what it wrote with `fields` (§8.4). That change goes
-through `cctx`'s own process: its own PR, changeset and export-list update.
+It needs `cctx` **0.2.0 or later**. That release added the one thing this
+specification asked of the library: `CarriedTranscript.frontmatter`, the whole
+frontmatter block as parsed. With it, a carried index row gets back the
+fields `caitx` wrote with `fields`, such as `project` (§8.4).
 
 `caitx`'s own exports are kept small to begin with: reading an export,
 selecting conversations, building a `TranscriptSession` from one, and the
@@ -551,7 +550,7 @@ whole run. They grow only when a consumer needs more.
 - Package `@alexgsdev/claude-ai-transcript-export`, bin `caitx`, repository
   `claude-ai-transcript-export`.
 - Node ≥ 22, ESM only, TypeScript compiled with declarations.
-- Runtime dependencies: the `cctx` library, `yaml`, and a zip reader.
+- Runtime dependencies: the `cctx` library (`^0.2.0`), `yaml`, and a zip reader.
   `fflate` is the candidate: no dependencies of its own, and it can unzip a
   single named entry.
 - Releases as in `cctx`: work on `develop`, changesets, `main` publishes
