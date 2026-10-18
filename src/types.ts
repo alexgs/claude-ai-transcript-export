@@ -40,3 +40,20 @@ export interface RawConversation {
   chat_messages?: RawMessage[];
   [key: string]: unknown;
 }
+
+export type ToolPolicy = 'strip' | 'keep';
+export type ThinkingPolicy = 'drop' | 'keep';
+export type AttachmentPolicy = 'marker' | 'inline';
+
+/** What survives into a transcript (specification §7). */
+export interface ContentPolicy {
+  tools: ToolPolicy;
+  thinking: ThinkingPolicy;
+  attachments: AttachmentPolicy;
+}
+
+export const DEFAULT_CONTENT_POLICY: ContentPolicy = {
+  tools: 'strip',
+  thinking: 'drop',
+  attachments: 'marker',
+};
