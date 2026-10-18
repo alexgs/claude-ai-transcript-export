@@ -1,13 +1,19 @@
 #!/usr/bin/env node
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { readTranscripts, UsageError } from '@alexgsdev/claude-code-transcript-export';
-import { relative, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import type { ContentPolicy } from '../types.js';
 import { readExport, type ExportInput } from '../input.js';
 import { formatProbe, probeConversations } from '../probe.js';
-import { loadConfig, loadConfigFile, type ResolvedConfig } from '../config.js';
+import {
+  CONFIG_NAMES,
+  loadConfig,
+  loadConfigFile,
+  type ResolvedConfig,
+} from '../config.js';
+import { TEMPLATE } from './init.js';
 import { parseArgs, type Options } from './args.js';
 import { formatRows, listRows } from './list.js';
 import { extract, resolveSelection, type ExtractSummary } from '../extract.js';
@@ -52,7 +58,7 @@ list:
   -h, --help                 This message
   -v, --version              Print the version
 
-Not implemented yet: init.`;
+`;
 
 export function main(
   argv: string[],
@@ -92,11 +98,25 @@ export function main(
       return 0;
     }
 
+    if (options.command === 'init') {
+      // Either name, not just the one about to be written: a fresh
+      // .caitx.yaml beside a .caitx.json would silently take over from it.
+      const existing = CONFIG_NAMES.map((name) => join(io.cwd, name)).find((p) =>
+        existsSync(p),
+      );
+      if (existing !== undefined) {
+        io.stderr.write(`caitx: ${existing} already exists.\n`);
+        return 1;
+      }
+      const path = join(io.cwd, CONFIG_NAMES[0]);
+      writeFileSync(path, TEMPLATE);
+      io.stdout.write(`wrote ${path}\nproject root: ${io.cwd}\n`);
+      return 0;
+    }
     if (options.command === 'list') return runList(options, io);
     if (options.command === 'extract') return runExtract(options, io);
 
-    io.stderr.write(`caitx: \`${options.command}\` is not implemented yet.\n`);
-    return 1;
+    throw new Error(`unhandled command ${options.command}`);
   } catch (cause) {
     if (cause instanceof UsageError) {
       io.stderr.write(`caitx: ${cause.message}\n`);
