@@ -35,6 +35,23 @@ export {
 } from './config.js';
 export { parseLinkList, type LinkList } from './linklist.js';
 export {
+  conversationUrl,
+  deriveTitle,
+  toTranscript,
+  type ConversationTranscript,
+} from './conversation.js';
+export {
+  extract,
+  resolveSelection,
+  type ExtractOptions,
+  type ExtractSummary,
+} from './extract.js';
+export {
+  renderIndex,
+  type IndexEntry,
+  type RenderIndexOptions,
+} from './render/index.js';
+export {
   select,
   type ProjectCount,
   type SelectInput,

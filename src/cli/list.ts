@@ -1,9 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { readTranscripts, toLocalDate } from '@alexgsdev/claude-code-transcript-export';
-import type { ResolvedConfig } from '../config.js';
-import type { ExportInput } from '../input.js';
-import { select, type Selection } from '../select.js';
+import { toLocalDate } from '@alexgsdev/claude-code-transcript-export';
+import type { Selection } from '../select.js';
 import type { RawConversation } from '../types.js';
 
 export interface ListRow {
@@ -13,34 +9,6 @@ export interface ListRow {
   messages: number;
   forks: boolean;
   status: string;
-}
-
-/**
- * The selection for a config against an export, reading the link lists and
- * the output directory. The I/O half of `select`, shared by `list` and
- * `extract`.
- */
-export function resolveSelection(
-  input: ExportInput,
-  resolved: ResolvedConfig,
-): Selection {
-  const { root, config } = resolved;
-  const lists = new Map<string, string>();
-  for (const project of config.projects) {
-    const path = resolve(root, project.list);
-    // A list that cannot be read is reported by `select` with the others.
-    if (existsSync(path)) lists.set(project.name, readFileSync(path, 'utf8'));
-  }
-  const onDisk = new Set(
-    readTranscripts(resolve(root, config.out)).map((t) => t.id.toLowerCase()),
-  );
-  return select({
-    conversations: input.conversations,
-    projectUuids: input.projectUuids,
-    config,
-    lists,
-    onDisk,
-  });
 }
 
 const forks = (c: RawConversation) => {

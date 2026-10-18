@@ -2,12 +2,15 @@
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { UsageError } from '@alexgsdev/claude-code-transcript-export';
+import { readTranscripts, UsageError } from '@alexgsdev/claude-code-transcript-export';
+import { relative, resolve } from 'node:path';
+import type { ContentPolicy } from '../types.js';
 import { readExport, type ExportInput } from '../input.js';
 import { formatProbe, probeConversations } from '../probe.js';
 import { loadConfig, loadConfigFile, type ResolvedConfig } from '../config.js';
 import { parseArgs, type Options } from './args.js';
-import { formatRows, listRows, resolveSelection } from './list.js';
+import { formatRows, listRows } from './list.js';
+import { extract, resolveSelection, type ExtractSummary } from '../extract.js';
 
 /**
  * The package's own version, read rather than duplicated.
@@ -35,6 +38,13 @@ Options:
   --config <path>            Use exactly this config file
   --json                     Emit the result as JSON
 
+extract:
+  --out <path>               Override the output directory
+  --keep-tools               Keep every tool call and result, as JSON
+  --keep-thinking            Keep thinking blocks
+  --inline-attachments       Include attachments' extracted text
+  --dry-run                  Report what would happen, write nothing
+
 list:
   --since <YYYY-MM-DD>       Only conversations created on or after a date
   --unselected               Only conversations nothing selects
@@ -42,7 +52,7 @@ list:
   -h, --help                 This message
   -v, --version              Print the version
 
-Implemented so far: probe, list.`;
+Not implemented yet: init.`;
 
 export function main(
   argv: string[],
@@ -83,6 +93,7 @@ export function main(
     }
 
     if (options.command === 'list') return runList(options, io);
+    if (options.command === 'extract') return runExtract(options, io);
 
     io.stderr.write(`caitx: \`${options.command}\` is not implemented yet.\n`);
     return 1;
@@ -113,7 +124,14 @@ function runList(
   for (const warning of input.warnings) io.stderr.write(`caitx: warning: ${warning}\n`);
 
   const resolved = findResolved(options, io.cwd);
-  const selection = resolved === null ? null : resolveSelection(input, resolved);
+  const selection =
+    resolved === null
+      ? null
+      : resolveSelection(
+          input,
+          resolved,
+          readTranscripts(resolve(resolved.root, resolved.config.out)),
+        );
   if (resolved === null) {
     io.stderr.write('caitx: no .caitx.yaml here or above, so nothing is selected.\n');
   } else {
@@ -146,6 +164,107 @@ function runList(
     io.stdout.write(rows.map((r) => `${r.uuid}\n`).join(''));
   else if (rows.length > 0) io.stdout.write(`${formatRows(rows)}\n`);
   return 0;
+}
+
+/** Today, local: the only clock read in the package lives here. */
+function todayLocal(now = new Date()): string {
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  const day = `${now.getDate()}`.padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function runExtract(
+  options: Options,
+  io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream; cwd: string },
+): number {
+  const resolved = findResolved(options, io.cwd);
+  if (resolved === null) {
+    throw new UsageError(
+      `no .caitx.yaml in ${io.cwd} or any parent directory. ` +
+        'Write one (see the README) or pass --config <path>.',
+    );
+  }
+  const input = readExport(options.input as string);
+  for (const warning of input.warnings) io.stderr.write(`caitx: warning: ${warning}\n`);
+
+  const policy: Partial<ContentPolicy> = {};
+  if (options.keepTools) policy.tools = 'keep';
+  if (options.keepThinking) policy.thinking = 'keep';
+  if (options.inlineAttachments) policy.attachments = 'inline';
+
+  const summary = extract({
+    input,
+    resolved,
+    today: todayLocal(),
+    dryRun: options.dryRun,
+    policy,
+    ...(options.out !== undefined ? { out: options.out } : {}),
+  });
+
+  for (const t of summary.titles) {
+    io.stderr.write(
+      `caitx: title ${JSON.stringify(t.title)} is ${t.uuid}; name it by uuid, since titles change.\n`,
+    );
+  }
+  if (options.json) {
+    io.stdout.write(
+      `${JSON.stringify({ export: describe(input), ...summary }, null, 2)}\n`,
+    );
+  } else {
+    if (options.dryRun) io.stdout.write('dry run: nothing written\n');
+    reportExtract(summary, input, io.stdout);
+  }
+  return 0;
+}
+
+function reportExtract(
+  summary: ExtractSummary,
+  input: ExportInput,
+  out: NodeJS.WritableStream,
+): void {
+  const rel = relative(summary.root, summary.outDir) || '.';
+  out.write(`project root: ${summary.root}\n`);
+  out.write(
+    `export: ${input.path}${input.createdAt ? ` (created ${input.createdAt})` : ''}\n`,
+  );
+  out.write(`output: ${rel}\n`);
+  // Printed every run: nothing in the export can catch a link list that is
+  // missing conversations, so this count, compared once with the project
+  // page, is the only check (§5.2).
+  for (const p of summary.projects) {
+    out.write(
+      `${p.name}: ${p.total} conversations (${p.inExport} in this export, ${p.carried} carried)\n`,
+    );
+  }
+  for (const uuid of summary.skippedProjectUuids) {
+    out.write(`skipped a project uuid in a link list: ${uuid}\n`);
+  }
+  out.write(
+    `conversations: ${summary.conversations}, written: ${summary.written}, ` +
+      `unchanged: ${summary.unchanged}, turns: ${summary.turns}, ` +
+      `branches dropped: ${summary.branchesDropped}\n`,
+  );
+  if (summary.carried.length > 0) {
+    out.write(
+      `carried forward: ${summary.carried.length} transcript(s) kept in the index ` +
+        'that this export does not regenerate\n',
+    );
+  }
+  for (const d of summary.deselected) {
+    out.write(
+      `deselected, kept: ${d.filename}. Its conversation is no longer selected. ` +
+        `To delete it, add ${d.id} to exclude.\n`,
+    );
+  }
+  for (const s of summary.skipped)
+    out.write(`skipped (${s.reason}): ${s.title} [${s.id.slice(0, 8)}]\n`);
+  for (const r of summary.removed) out.write(`removed (${r.reason}): ${r.name}\n`);
+  for (const f of summary.documentsFellBack) {
+    out.write(
+      `documents shown as created plus edits, since their edits did not all apply, ` +
+        `in ${f.id.slice(0, 8)}: ${f.documents.join(', ')}\n`,
+    );
+  }
 }
 
 /** The export's identity, for `--json`, without its conversations. */
