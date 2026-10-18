@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { DEFAULT_CONFIG, parseConfigFile } from '../src/config.js';
 import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import { createRequire } from 'node:module';
@@ -40,12 +41,6 @@ describe('caitx', () => {
     };
     expect(VERSION).toBe(version);
     expect(run(['--version']).out).toBe(`${version}\n`);
-  });
-
-  it('says a known command is not implemented yet', () => {
-    const result = run(['init']);
-    expect(result.code).toBe(1);
-    expect(result.err).toContain('not implemented yet');
   });
 
   it('names an unknown command, as a usage error', () => {
@@ -182,5 +177,30 @@ describe('caitx extract', () => {
     const result = run(['extract', buildExport(), '--dry-run'], root);
     expect(result.out).toContain('dry run: nothing written');
     expect(existsSync(join(root, 'out'))).toBe(false);
+  });
+});
+
+describe('caitx init', () => {
+  it('writes a config that parses back to the defaults, and names the root', () => {
+    const root = tempDir();
+    const result = run(['init'], root);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(`project root: ${root}`);
+    const written = readFileSync(join(root, '.caitx.yaml'), 'utf8');
+    expect(parseConfigFile(join(root, '.caitx.yaml'), written)).toEqual(DEFAULT_CONFIG);
+  });
+
+  it('refuses when a config exists under either name', () => {
+    for (const name of ['.caitx.yaml', '.caitx.json']) {
+      const root = tempDir();
+      writeFileSync(join(root, name), name.endsWith('json') ? '{}' : 'out: x\n');
+      const result = run(['init'], root);
+      expect(result.code).toBe(1);
+      expect(result.err).toContain(`${name} already exists`);
+    }
+  });
+
+  it('takes no export', () => {
+    expect(run(['init', 'somewhere']).code).toBe(2);
   });
 });

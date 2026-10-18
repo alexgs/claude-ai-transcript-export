@@ -1,0 +1,481 @@
+[
+  {
+    "uuid": "f1c0ffee-0000-4000-8000-000000000001",
+    "name": "Rich fixture",
+    "summary": "",
+    "created_at": "2026-08-24T12:00:00.000000Z",
+    "updated_at": "2026-08-30T12:00:00.000000Z",
+    "account": {
+      "uuid": "acc00000-0000-4000-8000-000000000000"
+    },
+    "chat_messages": [
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000001",
+        "parent_message_uuid": "00000000-0000-4000-8000-000000000000",
+        "sender": "human",
+        "text": "",
+        "content": [
+          {
+            "type": "injected_prompt_block",
+            "prompt": "harness context, never rendered",
+            "injection_source": "memory"
+          },
+          {
+            "type": "text",
+            "text": "Draft the faction guide.",
+            "citations": []
+          },
+          {
+            "type": "image",
+            "file_uuid": "file-shot",
+            "source": null
+          }
+        ],
+        "attachments": [
+          {
+            "file_name": "notes.md",
+            "file_size": 2048,
+            "file_type": "",
+            "extracted_content": "# Notes\n\nPirates."
+          }
+        ],
+        "files": [
+          {
+            "file_uuid": "file-shot",
+            "file_name": "shot.png"
+          },
+          {
+            "file_uuid": "file-extra",
+            "file_name": "extra.txt"
+          }
+        ],
+        "created_at": "2026-08-24T12:00:00.000000Z",
+        "updated_at": "2026-08-24T12:00:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000002",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000001",
+        "sender": "assistant",
+        "text": "",
+        "content": [
+          {
+            "type": "text",
+            "text": "A first attempt that was regenerated.",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-24T12:01:00.000000Z",
+        "updated_at": "2026-08-24T12:01:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000003",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000001",
+        "sender": "assistant",
+        "text": "",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "private reasoning, dropped by default"
+          },
+          {
+            "type": "text",
+            "text": "Here is a draft.",
+            "citations": [
+              {
+                "uuid": "cite-0",
+                "start_index": 0,
+                "end_index": 1,
+                "details": {
+                  "type": "web_search_citation",
+                  "url": "https://example.org/pirates"
+                }
+              },
+              {
+                "uuid": "cite-1",
+                "start_index": 0,
+                "end_index": 1,
+                "details": {
+                  "type": "web_search_citation",
+                  "url": "https://example.org/navies"
+                }
+              }
+            ]
+          },
+          {
+            "type": "token_budget",
+            "remaining": 1000
+          },
+          {
+            "type": "tool_use",
+            "id": "t1",
+            "name": "create_file",
+            "input": {
+              "path": "/mnt/user-data/outputs/faction-guide.md",
+              "file_text": "# Factions\n\nThe Navy.\n",
+              "description": "guide"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t1",
+            "name": "create_file",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t2",
+            "name": "ask_user_input_v0",
+            "input": {
+              "questions": [
+                {
+                  "question": "Which tone?",
+                  "options": ["Grim", "Bright"],
+                  "type": "single_select"
+                }
+              ]
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t2",
+            "name": "ask_user_input_v0",
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"questions\": []}"
+              }
+            ],
+            "is_error": false
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-24T12:05:00.000000Z",
+        "updated_at": "2026-08-24T12:05:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000004",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000003",
+        "sender": "assistant",
+        "text": "",
+        "content": [
+          {
+            "type": "text",
+            "text": "Continued in a second message.",
+            "citations": [
+              {
+                "uuid": "cite-0",
+                "start_index": 0,
+                "end_index": 1,
+                "details": {
+                  "type": "web_search_citation",
+                  "url": "https://example.org/pirates"
+                }
+              }
+            ]
+          },
+          {
+            "type": "tool_use",
+            "id": "t3",
+            "name": "present_files",
+            "input": {
+              "filepaths": ["/mnt/user-data/outputs/faction-guide.md"]
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t3",
+            "name": "",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-24T12:06:00.000000Z",
+        "updated_at": "2026-08-24T12:06:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000005",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000004",
+        "sender": "human",
+        "text": "",
+        "content": [],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-24T12:07:00.000000Z",
+        "updated_at": "2026-08-24T12:07:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000006",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000005",
+        "sender": "human",
+        "text": "",
+        "content": [
+          {
+            "type": "text",
+            "text": "Grim. Tighten it.",
+            "citations": []
+          },
+          {
+            "type": "document",
+            "file_uuid": "file-spec",
+            "title": "Setting Spec"
+          },
+          {
+            "type": "flag",
+            "flag": "x",
+            "helpline": "y"
+          }
+        ],
+        "attachments": [],
+        "files": [
+          {
+            "file_uuid": "file-spec",
+            "file_name": "spec.pdf"
+          }
+        ],
+        "created_at": "2026-08-24T12:08:00.000000Z",
+        "updated_at": "2026-08-24T12:08:00.000000Z"
+      },
+      {
+        "uuid": "f1000000-0000-4000-8000-000000000007",
+        "parent_message_uuid": "f1000000-0000-4000-8000-000000000006",
+        "sender": "assistant",
+        "text": "",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "t4",
+            "name": "str_replace",
+            "input": {
+              "path": "/mnt/user-data/outputs/faction-guide.md",
+              "old_str": "The Navy.",
+              "new_str": "The Navy, grimly.",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t4",
+            "name": "str_replace",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t5",
+            "name": "bash_tool",
+            "input": {
+              "command": "wc -l /mnt/user-data/outputs/faction-guide.md",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t5",
+            "name": "bash_tool",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t6",
+            "name": "create_file",
+            "input": {
+              "path": "/home/claude/work/broken.md",
+              "file_text": "alpha\n",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t6",
+            "name": "create_file",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t7",
+            "name": "str_replace",
+            "input": {
+              "path": "/home/claude/work/broken.md",
+              "old_str": "missing",
+              "new_str": "x",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t7",
+            "name": "str_replace",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t8",
+            "name": "str_replace",
+            "input": {
+              "path": "/mnt/user-data/uploads/notes.md",
+              "old_str": "Pirates.",
+              "new_str": "Corsairs.",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t8",
+            "name": "str_replace",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t9",
+            "name": "create_file",
+            "input": {
+              "file_text": "no path at all",
+              "description": "d"
+            }
+          },
+          {
+            "type": "tool_result",
+            "tool_use_id": "t9",
+            "name": "create_file",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "tool_use",
+            "id": "t10",
+            "name": "artifacts",
+            "input": {
+              "command": "create",
+              "id": "ranks",
+              "title": "Naval Ranks",
+              "type": "text/markdown",
+              "content": "Ensign",
+              "version_uuid": "v1"
+            }
+          },
+          {
+            "type": "tool_use",
+            "id": "t11",
+            "name": "artifacts",
+            "input": {
+              "command": "update",
+              "id": "ranks",
+              "old_str": "Ensign",
+              "new_str": "Ensign, Lieutenant",
+              "version_uuid": "v2"
+            }
+          },
+          {
+            "type": "hologram",
+            "note": "a block type this version does not handle"
+          },
+          {
+            "type": "text",
+            "text": "Tightened.",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-24T12:09:00.000000Z",
+        "updated_at": "2026-08-24T12:09:00.000000Z"
+      }
+    ]
+  },
+  {
+    "uuid": "f1c0ffee-0000-4000-8000-000000000002",
+    "name": "",
+    "summary": "",
+    "created_at": "2026-08-25T12:00:00.000000Z",
+    "updated_at": "2026-08-25T12:01:00.000000Z",
+    "account": {
+      "uuid": "acc00000-0000-4000-8000-000000000000"
+    },
+    "chat_messages": [
+      {
+        "uuid": "f2000000-0000-4000-8000-000000000001",
+        "parent_message_uuid": "00000000-0000-4000-8000-000000000000",
+        "sender": "human",
+        "text": "",
+        "content": [
+          {
+            "type": "text",
+            "text": "How far apart are the jump gates in the outer belt, roughly speaking, given everything we decided?",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-25T12:00:00.000000Z",
+        "updated_at": "2026-08-25T12:00:00.000000Z"
+      },
+      {
+        "uuid": "f2000000-0000-4000-8000-000000000002",
+        "parent_message_uuid": "f2000000-0000-4000-8000-000000000001",
+        "sender": "assistant",
+        "text": "",
+        "content": [
+          {
+            "type": "text",
+            "text": "About a week's sail.",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": [],
+        "created_at": "2026-08-25T12:01:00.000000Z",
+        "updated_at": "2026-08-25T12:01:00.000000Z"
+      }
+    ]
+  }
+]

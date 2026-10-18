@@ -91,6 +91,13 @@ export function languageFor(pathOrType: string): string {
   return ext === 'md' ? 'markdown' : ext;
 }
 
+/**
+ * A document's text for its fence. One final newline is dropped: nearly every
+ * file ends with one, and inside a fence it shows as a blank line before the
+ * closing backticks. Only that one; anything else is the file as written.
+ */
+const body = (text: string) => (text.endsWith('\n') ? text.slice(0, -1) : text);
+
 /** `old` and `new` as a unified-diff-shaped body: every line marked. */
 function diffBody(oldStr: string, newStr: string): string {
   const mark = (prefix: string, s: string) =>
@@ -134,7 +141,7 @@ export class DocumentCollector {
           token,
           edit: false,
           render: (turn) =>
-            `**(unnamed file)** — created in turn ${turn}.\n\n${fence(text, '')}`,
+            `**(unnamed file)** — created in turn ${turn}.\n\n${fence(body(text), '')}`,
         });
         return this.place(token);
       }
@@ -343,7 +350,7 @@ export class DocumentCollector {
         : '';
       const block =
         `**${doc.label}** — ${history}, final version.${shellNote}\n\n` +
-        fence(replay, doc.language);
+        fence(body(replay), doc.language);
 
       for (const { token, op } of doc.ops) {
         if (token === anchor) continue;
@@ -429,7 +436,7 @@ function renderFallback(
           ? `**${doc.label}** — created in turn ${turn(token)}. Its later edits did not all ` +
             `apply, so it is shown as created, with each edit as a diff.${shellNote}`
           : `**${doc.label}** — ${op.verb}.`;
-      replacement.set(token, `${lead}\n\n${fence(op.text, doc.language)}`);
+      replacement.set(token, `${lead}\n\n${fence(body(op.text), doc.language)}`);
     } else {
       replacement.set(
         token,
