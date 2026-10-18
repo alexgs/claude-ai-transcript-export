@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { UsageError } from '@alexgsdev/claude-code-transcript-export';
 import {
   DEFAULT_CONFIG,
+  contentPolicy,
   findConfig,
   loadConfig,
   loadConfigFile,
@@ -34,6 +35,17 @@ describe('findConfig and loadConfig', () => {
 });
 
 describe('mergeConfig', () => {
+  it('reads keepTools, without duplicates, into the content policy', () => {
+    const config = mergeConfig({
+      keepTools: ['conversation_search', 'web_search', 'web_search'],
+    });
+    expect(config.keepTools).toEqual(['conversation_search', 'web_search']);
+    expect(contentPolicy(config).keepTools).toEqual([
+      'conversation_search',
+      'web_search',
+    ]);
+  });
+
   it('fills in defaults', () => {
     expect(mergeConfig(null)).toEqual(DEFAULT_CONFIG);
   });
@@ -85,6 +97,9 @@ describe('mergeConfig', () => {
     [{ tools: 'some' }, /`tools` must be one of strip \| keep/],
     [{ attachments: 'all' }, /`attachments`/],
     [{ index: { wat: 1 } }, /index\.wat/],
+    [{ keepTools: 'conversation_search' }, /list of tool names/],
+    [{ keepTools: ['create_file'] }, /already preserved in readable form/],
+    [{ keepTools: ['ask_user_input_v0', 'present_files'] }, /are already preserved/],
   ])('rejects %j', (raw, message) => {
     expect(() => mergeConfig(raw)).toThrow(UsageError);
     expect(() => mergeConfig(raw)).toThrow(message);

@@ -80,6 +80,32 @@ export function renderPresented(input: unknown): string | null {
 export const DOCUMENT_TOOLS = new Set(['create_file', 'str_replace', 'artifacts']);
 
 /**
+ * Tools already preserved under `tools: strip`, each in its own readable
+ * form. `keepTools` cannot name them: they would render twice, once readably
+ * and once as JSON.
+ */
+export const PRESERVED_TOOLS = new Set([
+  ...DOCUMENT_TOOLS,
+  'ask_user_input_v0',
+  'present_files',
+]);
+
+/**
+ * The name of the call a `tool_result` answers, found by `tool_use_id` in the
+ * same message. Every one of the 8,889 results in the observed export sits in
+ * its call's message, and 19 of them carry an empty `name` of their own, so
+ * the call is the reliable source (spec §3).
+ */
+function callName(block: RawBlock, message: RawMessage): string | undefined {
+  const id = str(block.tool_use_id);
+  if (id === undefined) return undefined;
+  const call = (Array.isArray(message.content) ? message.content : []).find(
+    (b) => b?.type === 'tool_use' && b.id === id,
+  );
+  return call === undefined ? undefined : str(call.name);
+}
+
+/**
  * One block as markdown, or null when policy drops it (specification §7.1).
  *
  * `sources` collects the block's citation URLs for the turn's source list.
@@ -113,8 +139,13 @@ export function renderBlock(
 
     case 'tool_use': {
       const name = str(block.name) ?? 'unknown';
-      if (policy.tools === 'keep') {
-        return fence(JSON.stringify(block.input ?? null, null, 2), `tool_use:${name}`);
+      const json = () =>
+        fence(JSON.stringify(block.input ?? null, null, 2), `tool_use:${name}`);
+      if (policy.tools === 'keep') return json();
+      if (policy.keepTools?.includes(name)) {
+        // A kept shell command still counts against documents it names.
+        if (name === 'bash_tool') documents?.shell(block.input);
+        return json();
       }
       if (name === 'ask_user_input_v0') return renderQuestions(block.input);
       if (name === 'present_files') {
@@ -130,10 +161,9 @@ export function renderBlock(
     }
 
     case 'tool_result': {
-      if (policy.tools !== 'keep') return null;
-      // `name` can be empty on a result (spec §3); the label says so rather
-      // than inventing one. Phase 3 pairs results to calls by tool_use_id.
-      const name = str(block.name) || 'unknown';
+      const name = callName(block, message) ?? (str(block.name) || 'unknown');
+      const kept = policy.tools === 'keep' || policy.keepTools?.includes(name) === true;
+      if (!kept) return null;
       return fence(
         JSON.stringify(block.content ?? null, null, 2),
         `tool_result:${name}`,

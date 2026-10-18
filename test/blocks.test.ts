@@ -146,6 +146,51 @@ describe('renderMessage', () => {
   });
 });
 
+describe('keepTools', () => {
+  const policy: ContentPolicy = {
+    ...DEFAULT_CONTENT_POLICY,
+    keepTools: ['conversation_search'],
+  };
+
+  it('keeps a named tool as JSON, call and result, and strips the rest', () => {
+    const parts = render(
+      [
+        toolUse('conversation_search', { query: 'jump limit' }, 'cs1'),
+        toolResult('conversation_search', [{ type: 'text', text: 'found it' }], 'cs1'),
+        toolUse('web_search', { query: 'x' }, 'ws1'),
+        toolResult('web_search', [], 'ws1'),
+      ],
+      {},
+      policy,
+    ).parts;
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toContain('```tool_use:conversation_search');
+    expect(parts[1]).toContain('```tool_result:conversation_search');
+    expect(parts[1]).toContain('found it');
+  });
+
+  it('pairs a result with an empty name to its call by tool_use_id', () => {
+    const parts = render(
+      [
+        toolUse('conversation_search', {}, 'cs1'),
+        toolResult('', [{ type: 'text', text: 'r' }], 'cs1'),
+      ],
+      {},
+      policy,
+    ).parts;
+    expect(parts[1]).toContain('```tool_result:conversation_search');
+  });
+
+  it('labels a tools: keep result by its call, not its empty name', () => {
+    const parts = render(
+      [toolUse('Bash', {}, 'b1'), toolResult('', [], 'b1')],
+      {},
+      keep,
+    ).parts;
+    expect(parts[1]).toContain('```tool_result:Bash');
+  });
+});
+
 describe('renderQuestions', () => {
   it('says when several answers are allowed, and collapses newlines', () => {
     const out = renderQuestions({

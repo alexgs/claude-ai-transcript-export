@@ -131,6 +131,7 @@ exclude: []
 
 # Content policy (§7).
 tools: strip          # strip | keep
+keepTools: []         # tools kept as JSON anyway, under strip (§7.4)
 thinking: drop        # drop | keep
 attachments: marker   # marker | inline
 skipEmpty: true       # skip conversations with no surviving turns
@@ -381,6 +382,25 @@ position, and renders in place.
 `cctx --keep-tools` does, and turns the document model off: with every
 payload present, a replayed final version would show each document twice.
 `thinking: keep` and `attachments: inline` change only the blocks they name.
+
+**`keepTools`** names tools to keep as fenced JSON under `tools: strip`,
+every other tool still stripped and the document model still on. It is for a
+project whose own argument puts a tool on the right side of §7.2's line. The
+case that prompted it: `protocol-era` adjudicates provenance, and
+`conversation_search` results show what the model retrieved from earlier
+conversations. That retrieved text exists elsewhere, so the default strips
+it, but which parts were retrieved is evidence nowhere else records. Over
+`protocol-era`'s ten conversations, `keepTools: [conversation_search,
+web_search]` keeps 23 calls and their results and leaves every document,
+question and presentation readable. Output grows from 668 KB to 1,121 KB,
+against 1,450 KB for `tools: keep`.
+
+A tool already preserved in readable form (the document tools,
+`ask_user_input_v0`, `present_files`) cannot be listed: it would render twice.
+A kept `bash_tool` still counts against the documents it names (§7.3). A
+result is labelled by the call it answers, found by `tool_use_id` in the same
+message, because a result's own `name` can be empty (§3); every result in the
+observed export sits in its call's message.
 
 ### 7.5 Citations
 
