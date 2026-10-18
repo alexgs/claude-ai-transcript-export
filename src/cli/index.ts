@@ -5,7 +5,9 @@ import { pathToFileURL } from 'node:url';
 import { UsageError } from '@alexgsdev/claude-code-transcript-export';
 import { readExport, type ExportInput } from '../input.js';
 import { formatProbe, probeConversations } from '../probe.js';
-import { parseArgs } from './args.js';
+import { loadConfig, loadConfigFile, type ResolvedConfig } from '../config.js';
+import { parseArgs, type Options } from './args.js';
+import { formatRows, listRows, resolveSelection } from './list.js';
 
 /**
  * The package's own version, read rather than duplicated.
@@ -30,15 +32,21 @@ Usage:
 conversations file.
 
 Options:
+  --config <path>            Use exactly this config file
   --json                     Emit the result as JSON
+
+list:
+  --since <YYYY-MM-DD>       Only conversations created on or after a date
+  --unselected               Only conversations nothing selects
+  --format list              One uuid per line, ready for a link list
   -h, --help                 This message
   -v, --version              Print the version
 
-Implemented so far: probe.`;
+Implemented so far: probe, list.`;
 
 export function main(
   argv: string[],
-  io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream },
+  io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream; cwd: string },
 ): number {
   try {
     const options = parseArgs(argv);
@@ -74,6 +82,8 @@ export function main(
       return 0;
     }
 
+    if (options.command === 'list') return runList(options, io);
+
     io.stderr.write(`caitx: \`${options.command}\` is not implemented yet.\n`);
     return 1;
   } catch (cause) {
@@ -86,6 +96,56 @@ export function main(
     );
     return 1;
   }
+}
+
+/** The config `--config` names, or the nearest one; null when there is none. */
+function findResolved(options: Options, cwd: string): ResolvedConfig | null {
+  return options.config !== undefined
+    ? loadConfigFile(options.config)
+    : loadConfig(cwd);
+}
+
+function runList(
+  options: Options,
+  io: { stdout: NodeJS.WritableStream; stderr: NodeJS.WritableStream; cwd: string },
+): number {
+  const input = readExport(options.input as string);
+  for (const warning of input.warnings) io.stderr.write(`caitx: warning: ${warning}\n`);
+
+  const resolved = findResolved(options, io.cwd);
+  const selection = resolved === null ? null : resolveSelection(input, resolved);
+  if (resolved === null) {
+    io.stderr.write('caitx: no .caitx.yaml here or above, so nothing is selected.\n');
+  } else {
+    io.stderr.write(`caitx: project root: ${resolved.root}\n`);
+    for (const p of selection?.projects ?? []) {
+      io.stderr.write(
+        `caitx: ${p.name}: ${p.total} conversations (${p.inExport} in this export, ${p.carried} carried)\n`,
+      );
+    }
+    for (const t of selection?.titles ?? []) {
+      io.stderr.write(
+        `caitx: title ${JSON.stringify(t.title)} is ${t.uuid}; name it by uuid, since titles change.\n`,
+      );
+    }
+  }
+
+  let rows = listRows(
+    input.conversations,
+    selection,
+    new Set(resolved?.config.exclude ?? []),
+  );
+  if (options.since !== undefined) {
+    const since = options.since;
+    rows = rows.filter((r) => r.created >= since);
+  }
+  if (options.unselected) rows = rows.filter((r) => r.status === 'not selected');
+
+  if (options.json) io.stdout.write(`${JSON.stringify(rows, null, 2)}\n`);
+  else if (options.format === 'list')
+    io.stdout.write(rows.map((r) => `${r.uuid}\n`).join(''));
+  else if (rows.length > 0) io.stdout.write(`${formatRows(rows)}\n`);
+  return 0;
 }
 
 /** The export's identity, for `--json`, without its conversations. */
@@ -116,6 +176,7 @@ if (entryUrl !== undefined && import.meta.url === entryUrl) {
   process.exitCode = main(process.argv.slice(2), {
     stdout: process.stdout,
     stderr: process.stderr,
+    cwd: process.cwd(),
   });
 }
 /* c8 ignore stop */

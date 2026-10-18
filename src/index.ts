@@ -19,6 +19,29 @@ export { ROOT_PARENT, TreeError, chooseBranch, type Branch } from './tree.js';
 export { buildTurns, type BuiltTurns } from './turns.js';
 export type { DocumentStats } from './documents.js';
 export {
+  CONFIG_NAMES,
+  DEFAULT_CONFIG,
+  contentPolicy,
+  findConfig,
+  loadConfig,
+  loadConfigFile,
+  mergeConfig,
+  parseConfigFile,
+  type Config,
+  type ConversationEntry,
+  type IndexConfig,
+  type ProjectConfig,
+  type ResolvedConfig,
+} from './config.js';
+export { parseLinkList, type LinkList } from './linklist.js';
+export {
+  select,
+  type ProjectCount,
+  type SelectInput,
+  type Selected,
+  type Selection,
+} from './select.js';
+export {
   humanSize,
   renderMessage,
   renderQuestions,
