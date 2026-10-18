@@ -201,6 +201,7 @@ export function extract(options: ExtractOptions): ExtractSummary {
         projectColumn: config.projects.length > 1,
         carried,
         excluded: [...exclude].sort(),
+        policy,
       }),
     );
     if (wrote) summary.written += 1;

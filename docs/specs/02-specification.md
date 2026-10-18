@@ -490,8 +490,13 @@ Claude Code (`cctx` spec 05). It contains:
   conversation's claude.ai URL.
 - The turn-alternation statement from `cctx`'s `parityStatement`, measured,
   never asserted.
-- A sentence on what turns are: one branch, coalesced as in §6.2, with tool
-  traffic stripped except for documents and questions.
+- A paragraph on what transcripts are: one branch, coalesced as in §6.2, and
+  what happened to tool calls, worded from the tool policy the run used. The
+  default says tool calls are stripped except documents and questions;
+  `keepTools` adds the tools it names, kept as JSON; `tools: keep` says every
+  call is kept and no document has a final version. *Corrected after 0.2.0:*
+  the paragraph first gave the default wording whatever the config. The
+  default wording is unchanged, so existing indexes are not rewritten.
 - The exclusion count, as `cctx` §5.2.
 - `index.preamble`, verbatim.
 - **Rows carried forward** from transcripts on disk that this export cannot
