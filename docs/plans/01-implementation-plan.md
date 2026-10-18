@@ -112,7 +112,7 @@ against a new export, and the README says so.
 
 **Done when:** `caitx probe` against the 2026-10-18 export reproduces the
 survey: 1,286 conversations, 20,591 messages, the block-type counts in brief
-§3.3, 58 tool names, and 87 forked conversations with 106 fork points. Any
+§3.3, 57 tool names, and 87 forked conversations with 106 fork points. Any
 number that differs is resolved in the spec before phase 2 starts.
 
 ## Phase 2: the conversation model (pure)
