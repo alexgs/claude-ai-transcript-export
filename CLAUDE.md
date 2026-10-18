@@ -18,6 +18,34 @@ format) and `docs/specs/02-specification.md` (the rules). The order of work is
 `docs/plans/01-implementation-plan.md`. **Read the relevant section before
 changing behaviour.**
 
+## Architecture
+
+A pipeline, pure in the middle, as in `cctx`:
+
+```
+input.ts         an export in any of three forms           (I/O)
+tree.ts          a conversation's tree -> one branch        (pure)
+blocks.ts        content blocks -> markdown, markers        (pure)
+documents.ts     replay create_file/str_replace/artifacts   (pure, two passes)
+turns.ts         a branch -> turns, then documents placed   (pure)
+conversation.ts  -> a TranscriptSession for cctx's library  (pure)
+linklist.ts      pasted link lists, read generously         (pure)
+select.ts        which conversations, checked strictly      (pure)
+render/index.ts  index.md                                   (pure)
+extract.ts       the run: read disk, select, write via cctx (I/O)
+probe.ts         the schema report                          (pure)
+cli/             arguments, reporting                       (I/O, clock)
+```
+
+The document model needs turn numbers that do not exist until turns are
+built, so `blocks.ts` leaves private-use-character tokens where document
+operations sit and `turns.ts` resolves them afterwards. A token left
+unresolved throws.
+
+`test/snapshot.test.ts` renders `test/fixtures/export/rich.json`, which
+exercises every block type and document rule plus one unknown block type.
+Update its snapshot deliberately when handling changes.
+
 ## Commands
 
 ```sh

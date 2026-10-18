@@ -267,6 +267,13 @@ spec §7.3 says so.
   `release.yml` can take over. Confirm against npm's documentation at the
   time rather than relying on this note.
 
+*Progress, 2026-10-18:* `init`, the README, the snapshot test over
+`test/fixtures/export/rich.json`, and the `npm pack` install check are done.
+The installed binary, run through its `node_modules/.bin` symlink, probed the
+real export, and extracted ten conversations twice, the second run writing
+nothing. The first publish and trusted-publishing setup remain, and need the
+package owner.
+
 ## Phase 7: acceptance
 
 ### 7.1 `protocol-era`'s ten conversations
