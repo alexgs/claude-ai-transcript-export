@@ -143,7 +143,12 @@ phase; phase 3 gives them their real form.
 - A message with empty `content` and non-empty `text` renders from `text`.
 
 **Done when:** `probe` also reports turns and alternation breaks on the chosen
-branches, and against the real export that leaves exactly one break (spec §3).
+branches, and every break against the real export is explained.
+
+*Result:* 10 breaks, not the 1 this criterion first expected. That number came
+from the survey, which counted message pairs before content policy. The other
+nine are assistant replies with nothing visible, which spec §6.2 keeps as two
+human turns. Spec §3 has the breakdown.
 
 ## Phase 3: the document model (pure)
 
