@@ -15,6 +15,12 @@ export interface Options {
   unselected: boolean;
   /** `list --format table|list`. */
   format: 'table' | 'list';
+  /** extract: */
+  out?: string;
+  dryRun: boolean;
+  keepTools: boolean;
+  keepThinking: boolean;
+  inlineAttachments: boolean;
 }
 
 const COMMANDS = new Set<string>(['extract', 'list', 'probe', 'init']);
@@ -30,6 +36,10 @@ export function parseArgs(argv: string[]): Options {
     json: false,
     unselected: false,
     format: 'table',
+    dryRun: false,
+    keepTools: false,
+    keepThinking: false,
+    inlineAttachments: false,
   };
   const positionals: string[] = [];
 
@@ -50,6 +60,20 @@ export function parseArgs(argv: string[]): Options {
     }
     if (arg === '--unselected') {
       options.unselected = true;
+      continue;
+    }
+    const flags = {
+      '--dry-run': 'dryRun',
+      '--keep-tools': 'keepTools',
+      '--keep-thinking': 'keepThinking',
+      '--inline-attachments': 'inlineAttachments',
+    } as const;
+    if (arg in flags) {
+      options[flags[arg as keyof typeof flags]] = true;
+      continue;
+    }
+    if (arg === '--out') {
+      options.out = value(arg, i++);
       continue;
     }
     if (arg === '--config') {

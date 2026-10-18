@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import { createRequire } from 'node:module';
@@ -43,7 +43,7 @@ describe('caitx', () => {
   });
 
   it('says a known command is not implemented yet', () => {
-    const result = run(['extract', buildExport()]);
+    const result = run(['init']);
     expect(result.code).toBe(1);
     expect(result.err).toContain('not implemented yet');
   });
@@ -144,5 +144,43 @@ describe('caitx list', () => {
 
   it('rejects a malformed --since', () => {
     expect(run(['list', buildExport(), '--since', '8/24']).code).toBe(2);
+  });
+});
+
+describe('caitx extract', () => {
+  it('needs a config', () => {
+    const result = run(['extract', buildExport()]);
+    expect(result.code).toBe(2);
+    expect(result.err).toContain('no .caitx.yaml');
+  });
+
+  it('writes transcripts and reports the project count', () => {
+    const root = tempDir();
+    writeFileSync(
+      join(root, '.caitx.yaml'),
+      'out: out\nprojects:\n  - name: Fixture\n    list: p.txt\n',
+    );
+    writeFileSync(join(root, 'p.txt'), 'c0ffee00-0000-4000-8000-000000000001\n');
+    const exportDir = buildExport();
+    const result = run(['extract', exportDir], root);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(`project root: ${root}`);
+    expect(result.out).toContain(
+      'Fixture: 1 conversations (1 in this export, 0 carried)',
+    );
+    expect(result.out).toContain('conversations: 1, written: 2');
+    // The headline invariant, through the CLI.
+    expect(run(['extract', exportDir], root).out).toContain('written: 0, unchanged: 2');
+  });
+
+  it('writes nothing under --dry-run', () => {
+    const root = tempDir();
+    writeFileSync(
+      join(root, '.caitx.yaml'),
+      'out: out\nconversations:\n  - uuid: c0ffee00-0000-4000-8000-000000000001\n',
+    );
+    const result = run(['extract', buildExport(), '--dry-run'], root);
+    expect(result.out).toContain('dry run: nothing written');
+    expect(existsSync(join(root, 'out'))).toBe(false);
   });
 });

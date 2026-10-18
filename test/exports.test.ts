@@ -17,6 +17,9 @@ describe('library exports', () => {
         "buildTurns",
         "chooseBranch",
         "contentPolicy",
+        "conversationUrl",
+        "deriveTitle",
+        "extract",
         "findConfig",
         "formatProbe",
         "humanSize",
@@ -29,9 +32,12 @@ describe('library exports', () => {
         "parseManifest",
         "probeConversations",
         "readExport",
+        "renderIndex",
         "renderMessage",
         "renderQuestions",
+        "resolveSelection",
         "select",
+        "toTranscript",
       ]
     `);
   });

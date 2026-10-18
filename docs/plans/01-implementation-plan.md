@@ -230,9 +230,13 @@ spec §7.3 says so.
 
 - **The headline invariant:** a second run over the same export writes zero
   files.
-- **The stronger one:** a newer fixture export, in which a conversation's
-  `updated_at` moved and it gained an abandoned branch, writes nothing for
-  that conversation (§9).
+- **The stronger one:** a newer fixture export, in which only a
+  conversation's `updated_at` moved, writes nothing for that conversation
+  (§9).
+- A conversation that gained a branch is rewritten. *Corrected while
+  building:* this plan first grouped a gained branch with the zero-write
+  case, but a branch changes `branches_dropped`, and a regenerated reply is
+  newer, so it becomes the rendered branch. Both are real changes.
 - A renamed conversation's old file is deleted and reported.
 - An excluded conversation's transcript is deleted and reported.
 - A deselected conversation's transcript is kept, kept in the index, and

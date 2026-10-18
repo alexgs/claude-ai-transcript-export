@@ -490,7 +490,10 @@ As `cctx` §9. The renderer is pure. `writeIfChanged` renders with the
 changed. **A rerun over the same export writes zero files.**
 
 The stronger property is the one that matters here: **a newer export in which
-a conversation did not change writes nothing for it.** That is why `updated`
+a conversation did not change writes nothing for it.** "Did not change" means
+what is rendered: a moved `updated_at` alone writes nothing, while a new
+branch does, since it changes `branches_dropped` and, being newer, usually
+the branch rendered. That is why `updated`
 comes from the rendered branch rather than from `updated_at` (§8.2), and why
 nothing in the output reads a value that moves without the content moving.
 
