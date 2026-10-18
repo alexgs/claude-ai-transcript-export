@@ -1,5 +1,6 @@
 import type { SessionTurn, Speaker } from '@alexgsdev/claude-code-transcript-export';
 import { renderMessage } from './blocks.js';
+import { DocumentCollector, type DocumentStats } from './documents.js';
 import type { ContentPolicy, RawMessage } from './types.js';
 import { DEFAULT_CONTENT_POLICY } from './types.js';
 
@@ -9,6 +10,8 @@ export interface BuiltTurns {
   emptyHumanMessages: number;
   /** Messages rendered from `text` because `content` was empty (§6.3). */
   textFallbacks: number;
+  /** The document model's results; null under `tools: keep`, which turns it off (§7.4). */
+  documents: DocumentStats | null;
 }
 
 const SPEAKERS: Record<string, Speaker> = { human: 'Human', assistant: 'Assistant' };
@@ -40,6 +43,9 @@ export function buildTurns(
   const pending: Array<{ speaker: Speaker; parts: string[]; sources: string[] }> = [];
   let emptyHumanMessages = 0;
   let textFallbacks = 0;
+  // §7.4: with every payload rendered as JSON, a replayed final version would
+  // show each document twice, so `tools: keep` turns the model off.
+  const documents = policy.tools === 'strip' ? new DocumentCollector() : undefined;
 
   for (const message of messages) {
     const speaker = SPEAKERS[message.sender ?? ''];
@@ -50,7 +56,7 @@ export function buildTurns(
       );
     }
 
-    let { parts, sources } = renderMessage(message, policy);
+    let { parts, sources } = renderMessage(message, policy, documents);
     const contentEmpty =
       !Array.isArray(message.content) || message.content.length === 0;
     if (
@@ -84,5 +90,15 @@ export function buildTurns(
     })
     .filter((turn) => turn.text !== '');
 
-  return { turns, emptyHumanMessages, textFallbacks };
+  // The second pass: turn numbers are known now, so documents can be placed.
+  if (documents === undefined) {
+    return { turns, emptyHumanMessages, textFallbacks, documents: null };
+  }
+  const resolved = documents.resolve(turns.map((t) => t.text));
+  return {
+    turns: turns.map((t, i) => ({ ...t, text: resolved.texts[i] as string })),
+    emptyHumanMessages,
+    textFallbacks,
+    documents: resolved.stats,
+  };
 }
