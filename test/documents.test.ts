@@ -106,6 +106,21 @@ describe('the document model', () => {
     expect(built.documents?.shellTouched).toBe(1);
   });
 
+  it('still warns when the shell command is itself kept by keepTools', () => {
+    const turns = [
+      ['human', [text('q')]],
+      ['assistant', [create('a'), bash(`wc -l ${PATH}`)]],
+    ] as Array<['human' | 'assistant', RawBlock[]]>;
+    const built = buildTurns(chooseBranch(linear(turns)).messages, {
+      tools: 'strip',
+      thinking: 'drop',
+      attachments: 'marker',
+      keepTools: ['bash_tool'],
+    });
+    expect(assistant(built, 2)).toContain('Also touched by shell commands');
+    expect(assistant(built, 2)).toContain('```tool_use:bash_tool');
+  });
+
   it('does not warn about a shell command before creation', () => {
     const built = run([bash(`mkdir -p ${PATH}`)], [create('a')]);
     expect(assistant(built, 4)).not.toContain('shell commands');

@@ -50,6 +50,12 @@ export interface ContentPolicy {
   tools: ToolPolicy;
   thinking: ThinkingPolicy;
   attachments: AttachmentPolicy;
+  /**
+   * Tools kept as fenced JSON under `tools: strip`, every other tool still
+   * stripped (specification §7.2). Optional, so a policy written before it
+   * existed still type-checks; absent means none.
+   */
+  keepTools?: readonly string[];
 }
 
 export const DEFAULT_CONTENT_POLICY: ContentPolicy = {
