@@ -62,6 +62,11 @@ A directory holding `manifest.json` and one zip per category, each named
 | `memories-000.zip` | `memories/<uuid>.json` |
 | `light_metadata-000.zip` | `users.json`, `login_history.json` |
 
+**Decided:** `caitx` accepts all three input forms, detected from what the
+path is. An export directory means reading `manifest.json` and every
+`conversations-*.zip` part. A single zip is also accepted, and so is a bare
+conversations file, which may be `.json` or `.dms` (§5.1).
+
 The `-000` part number means a large account may be split across several
 `conversations-*.zip` files. Read every part, and treat a manifest that lists
 a part not on disk as an error rather than silently exporting fewer
@@ -157,8 +162,24 @@ provide. The options:
 3. **Read membership from somewhere other than the export.** Out of scope by
    §2.
 
-Recommendation: (1). It also means "select by project" and "select by
-conversation" are one mechanism, not two.
+**Decided: (1), fed by an imported link list.** Hand-typing uuids is fine for
+ten conversations and not for a hundred, so a project in `.caitx.yaml` can
+point at a file of claude.ai chat URLs or bare uuids, one per line. Anything
+on a line that is not a conversation uuid is ignored, so a list copied off the
+project page in a browser works as-is. The list is captured once per project.
+After that, `caitx list --since <date>` shows only conversations created since
+the last run, so keeping it current means reading a short list. Notes are
+optional, or set once per project: a required note on each of a hundred
+conversations would be a chore.
+
+This also makes "select by project" and "select by conversation" one
+mechanism, not two.
+
+Inferring membership from the export was tried and fails even as a
+suggestion. Only 6 of 19 projects export any documents, because knowledge
+synced from GitHub or Drive is not included. Of the 250 conversations whose
+`project_knowledge_search` results name files, 152 match no project's
+document names, 56 match several, and 42 match exactly one.
 
 ### 5.1 Prior work: `protocol-era`'s extractor
 
@@ -205,7 +226,7 @@ prompt or a regenerated reply starts a sibling branch.
   same-sender pairs — one per fork point — so rendering the array as-is would
   stitch abandoned branches into the transcript.
 - The export does not mark the current branch. Following the **latest-created
-  leaf** back to the root is the obvious rule, and in all 87 forked
+  leaf** back to the root is the rule (decided), and in all 87 forked
   conversations the latest leaf is also the last message in the array, so the
   two possible heuristics agree on this export.
 - Along that path: 0 conversations start with an assistant turn, and 15
@@ -214,10 +235,9 @@ prompt or a regenerated reply starts a sibling branch.
   index.
 - 225 of 20,591 messages are off the chosen path.
 
-Dropped branches should be visible, not silent: record the count in the
-frontmatter (for example `branches_dropped: 2`) so a reader knows the
-transcript is one path through a tree. Rendering every branch is a possible
-later option, not the default.
+**Decided:** dropped branches are visible, not silent. Their count goes in the
+frontmatter, for example `branches_dropped: 2`, so a reader knows the
+transcript is one path through a tree. Rendering every branch is not planned.
 
 ## 7. Content policy
 
@@ -239,23 +259,46 @@ Tool calls by frequency: `bash_tool` 1,547, `str_replace` 1,366, `view` 1,244,
 61, `ask_user_input_v0` 43, then a long tail of memory, widget, docs and
 connector tools.
 
-A proposed starting point, to be settled in the specification:
+**Decided: follow `cctx`'s approach.** Tool calls are stripped by default.
+A call is preserved only by a named exception, and each exception is
+justified the way `cctx` specs 02 and 04 are: the call holds authored content
+that exists nowhere else. A preserved call renders as prose or as the
+document, never as escaped JSON. A policy flag keeps everything, as
+`--keep-tools` does in `cctx`.
+
+The likely exceptions, each to be argued in the specification:
 
 | Content | Default |
 | --- | --- |
 | `text` | Verbatim |
 | `thinking` | Dropped, as in `cctx` |
-| `create_file`, `artifacts` (authored content) | **Kept**, fenced, with the file name or artifact title |
-| `ask_user_input_v0` answers | Kept, the same argument as `cctx` spec 02 (answered question widgets) |
-| Other `tool_use` / `tool_result` | Stripped, with a policy flag to keep them |
+| `create_file`, `artifacts` (authored content) | Preserved, as the document, with its file name or artifact title |
+| `ask_user_input_v0` answers | Preserved, the same argument as `cctx` spec 02 (answered question widgets) |
+| `present_files` | Probably preserved as a marker naming the files, like `cctx` spec 04 (`SendUserFile`) |
+| Every other `tool_use` / `tool_result` | Stripped |
 | `injected_prompt_block`, `token_budget` | Dropped: harness context, like `cctx`'s `system-reminder` handling |
 | `image`, `document`, `files[]` | Marker with name (and size, when known) |
-| `attachments[]` | Marker with name and size; extracted text behind a policy flag |
+| `attachments[]` | **Decided:** marker with name and size, such as `> [attachment: notes.md, 12 KB]`; a policy flag inlines the extracted text in a fence |
 | `flag` | Visible marker |
 | Any unknown block type | Visible marker, never a silent drop |
-| Citations | Open question (§9) |
+| Citations | **Decided:** deduplicated source URLs listed at the end of the assistant turn; the prose is left untouched |
 
 `display_content` on tool results is UI rendering and is ignored.
+
+**Decided: files edited after they were created are replayed.**
+`str_replace` (1,366 calls) edits files that `create_file` made: 175 created
+files were edited later, 29 of them ten times or more. Preserving
+`create_file` alone would keep the first draft and present it as the
+document. Instead, the edits are applied and the finished document is
+rendered once, where it was last presented or edited, with a short marker at
+the creation and at each earlier edit pointing forward to it.
+
+Every edit records its exact `old_str` and `new_str`, so a replay is
+deterministic. It can still fail to apply — a file also changed through
+`bash_tool`, or an edit with no `path` (14 calls). When it fails, that file
+falls back to its created text plus each edit as a diff fence, in place, and
+the run says so. A replay that half-applies must never be presented as the
+document.
 
 ## 8. Output
 
@@ -269,7 +312,10 @@ The same as `cctx`, through its library:
   The account uuid is not written.
 - Dates are local, via `toLocalDate`, from the conversation's `created_at` and
   `updated_at`.
-- Title is `name`. The fallback for an empty name is an open question (§9).
+- Title is `name`. **Decided:** a conversation with no name (30 here, and
+  every one also has an empty `summary`) takes the first line of its first
+  human turn, truncated. A frontmatter field records that the title was
+  derived, so it is not mistaken for one the author or claude.ai gave it.
 - `index.md` written by `caitx`, using `parityStatement` and rows carried
   forward from `readTranscripts`, so a conversation missing from a newer
   export keeps its row.
@@ -277,21 +323,16 @@ The same as `cctx`, through its library:
 
 ## 9. Open questions
 
-1. **Project selection**: confirm option (1) in §5.
-2. **Branch choice**: confirm latest-created leaf, and whether to add an
-   option to render every branch.
-3. **Content policy**: confirm §7's defaults, especially keeping
-   `create_file` and `artifacts` content, which can be large.
-4. **Attachments**: is extracted text useful enough to include by default? It
-   is often the document the conversation is about, but also often long.
-5. **Citations**: render as markdown links at their character offsets,
-   collect them as footnotes, or ignore them?
-6. **Untitled conversations**: fall back to `summary`, the first human line,
-   or a fixed `untitled`?
-7. **Input form**: accept the export directory (reading `manifest.json`), a
-   single `conversations-*.zip`, an extracted `conversations.json`, or all
-   three?
-8. **CLI shape**: probably `caitx [extract] <export>`, `caitx list <export>`
+Decided 2026-10-18: project selection by imported link list (§5); latest
+leaf, with dropped branches counted (§6); tool calls stripped except named
+exceptions, as in `cctx` (§7); attachments as markers, with extracted text
+behind a flag (§7); edited files replayed to their final state (§7);
+citations as a sources list per turn (§7); untitled conversations named from
+the first human line (§8); all three input forms (§3.1).
+
+Still open:
+
+1. **CLI shape**: probably `caitx [extract] <export>`, `caitx list <export>`
    and `caitx probe <export>` (schema-drift report, as in `cctx`), with config
    in `.caitx.yaml`. To be settled in the specification.
 
