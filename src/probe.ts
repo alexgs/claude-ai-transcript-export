@@ -76,6 +76,15 @@ export interface ProbeReport {
     /** Conversations whose tree or senders could not be read. */
     unreadable: number;
   };
+  /** The document model over every conversation (specification §7.3). */
+  documents: {
+    documents: number;
+    replayed: number;
+    fellBack: number;
+    shellTouched: number;
+    looseEdits: number;
+    edits: { applied: number; unmatched: number; ambiguous: number };
+  };
 }
 
 const bump = (counts: Map<string, number>, key: string) =>
@@ -110,6 +119,14 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
   let textFallbacks = 0;
   let branchesDropped = 0;
   let unreadable = 0;
+  const documents = {
+    documents: 0,
+    replayed: 0,
+    fellBack: 0,
+    shellTouched: 0,
+    looseEdits: 0,
+    edits: { applied: 0, unmatched: 0, ambiguous: 0 },
+  };
 
   for (const conversation of conversations) {
     for (const key of Object.keys(conversation)) conversationKeys.add(key);
@@ -148,6 +165,17 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
       emptyHumanMessages += built.emptyHumanMessages;
       textFallbacks += built.textFallbacks;
       if (built.turns.length > 0) parities.push(parityReport(built.turns));
+      const d = built.documents;
+      if (d !== null) {
+        documents.documents += d.documents;
+        documents.replayed += d.replayed;
+        documents.fellBack += d.fellBack.length;
+        documents.shellTouched += d.shellTouched;
+        documents.looseEdits += d.looseEdits;
+        documents.edits.applied += d.edits.applied;
+        documents.edits.unmatched += d.edits.unmatched;
+        documents.edits.ambiguous += d.edits.ambiguous;
+      }
     } catch (cause) {
       // A probe reports drift; it does not stop at the first instance of it.
       // A tree that cannot be walked or an unknown sender is exactly that.
@@ -186,6 +214,7 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
       branchesDropped,
       unreadable,
     },
+    documents,
   };
 }
 
@@ -208,6 +237,15 @@ export function formatProbe(report: ProbeReport): string {
     `  messages rendered from text: ${report.turnModel.textFallbacks}`,
     `  branches dropped: ${report.turnModel.branchesDropped}`,
     `  unreadable conversations: ${report.turnModel.unreadable}`,
+    '',
+    'documents (create_file, str_replace, artifacts):',
+    `  documents: ${report.documents.documents}`,
+    `  replayed to a final version: ${report.documents.replayed}`,
+    `  fell back to created text and diffs: ${report.documents.fellBack}`,
+    `  touched by shell commands: ${report.documents.shellTouched}`,
+    `  edits to files never created here: ${report.documents.looseEdits}`,
+    `  file edits applied / unmatched / ambiguous: ${report.documents.edits.applied} / ` +
+      `${report.documents.edits.unmatched} / ${report.documents.edits.ambiguous}`,
     '',
     'senders:',
     ...table(report.senders),

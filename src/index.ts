@@ -17,6 +17,7 @@ export {
 export { formatProbe, probeConversations, type ProbeReport } from './probe.js';
 export { ROOT_PARENT, TreeError, chooseBranch, type Branch } from './tree.js';
 export { buildTurns, type BuiltTurns } from './turns.js';
+export type { DocumentStats } from './documents.js';
 export {
   humanSize,
   renderMessage,
