@@ -9,12 +9,19 @@ describe('library exports', () => {
   it('match the published surface', () => {
     expect(Object.keys(library).sort()).toMatchInlineSnapshot(`
       [
+        "DEFAULT_CONTENT_POLICY",
         "ROOT_PARENT",
+        "TreeError",
+        "buildTurns",
+        "chooseBranch",
         "formatProbe",
+        "humanSize",
         "parseConversations",
         "parseManifest",
         "probeConversations",
         "readExport",
+        "renderMessage",
+        "renderQuestions",
       ]
     `);
   });

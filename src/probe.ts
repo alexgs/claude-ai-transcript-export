@@ -1,7 +1,13 @@
+import {
+  aggregateParity,
+  parityReport,
+  type ParityReport,
+} from '@alexgsdev/claude-code-transcript-export';
+import { ROOT_PARENT, chooseBranch } from './tree.js';
+import { buildTurns } from './turns.js';
 import type { RawConversation } from './types.js';
 
-/** The root message's parent, in every conversation observed (brief §6). */
-export const ROOT_PARENT = '00000000-0000-4000-8000-000000000000';
+export { ROOT_PARENT };
 
 /** Keys the specification expects on a conversation and on a message. */
 const KNOWN_CONVERSATION_KEYS = new Set([
@@ -55,6 +61,21 @@ export interface ProbeReport {
   unexpectedConversationKeys: string[];
   unexpectedMessageKeys: string[];
   unhandledBlocks: string[];
+  /**
+   * The turn model over every conversation, under the default policy: what a
+   * full extraction would produce (specification §6).
+   */
+  turnModel: {
+    turns: number;
+    /** Adjacent same-speaker turns on the chosen branches, as cctx measures them. */
+    alternationBreaks: number;
+    notStartingWithHuman: number;
+    emptyHumanMessages: number;
+    textFallbacks: number;
+    branchesDropped: number;
+    /** Conversations whose tree or senders could not be read. */
+    unreadable: number;
+  };
 }
 
 const bump = (counts: Map<string, number>, key: string) =>
@@ -84,6 +105,11 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
   let forkedConversations = 0;
   let forkPoints = 0;
   let unknownParents = 0;
+  const parities: ParityReport[] = [];
+  let emptyHumanMessages = 0;
+  let textFallbacks = 0;
+  let branchesDropped = 0;
+  let unreadable = 0;
 
   for (const conversation of conversations) {
     for (const key of Object.keys(conversation)) conversationKeys.add(key);
@@ -114,7 +140,23 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
     const forks = [...children.values()].filter((n) => n > 1).length;
     if (forks > 0) forkedConversations += 1;
     forkPoints += forks;
+
+    try {
+      const branch = chooseBranch(conversation);
+      const built = buildTurns(branch.messages);
+      branchesDropped += branch.branchesDropped;
+      emptyHumanMessages += built.emptyHumanMessages;
+      textFallbacks += built.textFallbacks;
+      if (built.turns.length > 0) parities.push(parityReport(built.turns));
+    } catch (cause) {
+      // A probe reports drift; it does not stop at the first instance of it.
+      // A tree that cannot be walked or an unknown sender is exactly that.
+      if (!(cause instanceof Error)) throw cause;
+      unreadable += 1;
+    }
   }
+
+  const parity = aggregateParity(parities);
 
   return {
     conversations: conversations.length,
@@ -135,6 +177,15 @@ export function probeConversations(conversations: RawConversation[]): ProbeRepor
     unhandledBlocks: [...blockTypes.keys()]
       .filter((t) => !HANDLED_BLOCKS.has(t))
       .sort(),
+    turnModel: {
+      turns: parity.turns,
+      alternationBreaks: parity.alternationBreaks,
+      notStartingWithHuman: parity.sessionsNotStartingWithHuman,
+      emptyHumanMessages,
+      textFallbacks,
+      branchesDropped,
+      unreadable,
+    },
   };
 }
 
@@ -148,6 +199,15 @@ export function formatProbe(report: ProbeReport): string {
     `messages: ${report.messages}`,
     `forked conversations: ${report.forkedConversations}, fork points: ${report.forkPoints}`,
     `messages with an unknown parent: ${report.unknownParents}`,
+    '',
+    'turn model, on the chosen branches:',
+    `  turns: ${report.turnModel.turns}`,
+    `  alternation breaks: ${report.turnModel.alternationBreaks}`,
+    `  conversations not starting with a human turn: ${report.turnModel.notStartingWithHuman}`,
+    `  empty human messages (not turns): ${report.turnModel.emptyHumanMessages}`,
+    `  messages rendered from text: ${report.turnModel.textFallbacks}`,
+    `  branches dropped: ${report.turnModel.branchesDropped}`,
+    `  unreadable conversations: ${report.turnModel.unreadable}`,
     '',
     'senders:',
     ...table(report.senders),

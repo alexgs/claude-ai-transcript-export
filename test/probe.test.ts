@@ -103,4 +103,27 @@ describe('probeConversations', () => {
     expect(formatProbe(report)).not.toContain('SECRET');
     expect(JSON.stringify(report)).not.toContain('SECRET');
   });
+
+  it('runs the turn model and measures alternation on the chosen branches', () => {
+    const report = probeConversations([
+      conversation([
+        message('a', ROOT_PARENT, { content: [{ type: 'text', text: 'q1' }] }),
+        message('b', 'a', {
+          sender: 'assistant',
+          content: [{ type: 'tool_use', name: 'view' }],
+        }),
+        message('c', 'b', { content: [{ type: 'text', text: 'q2' }] }),
+      ]),
+    ]);
+    expect(report.turnModel).toMatchObject({
+      turns: 2,
+      alternationBreaks: 1,
+      unreadable: 0,
+    });
+  });
+
+  it('counts a conversation it cannot walk instead of stopping', () => {
+    const report = probeConversations([conversation([message('a', 'elsewhere')])]);
+    expect(report.turnModel.unreadable).toBe(1);
+  });
 });
