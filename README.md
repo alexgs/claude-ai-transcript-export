@@ -175,6 +175,84 @@ export format; [the specification](docs/specs/02-specification.md) has the
 rules; [the implementation plan](docs/plans/01-implementation-plan.md) the
 order they were built in.
 
+## Releasing
+
+Work lands on `develop`; `main` is what has been released. Every merge to
+`main` publishes to npm. Changes are recorded as they are made with
+[Changesets](https://changesets.dev) and collected into `CHANGELOG.md` at
+release time. The process is the same as `cctx`'s.
+
+**While developing.** A PR to `develop` that changes `src/`, `package.json` or
+`tsconfig.build.json` must add a changeset:
+
+```sh
+npm run changeset
+```
+
+CI fails without one. Label the PR `skip-changeset` if nothing a user of the
+package would notice has changed.
+
+**To release:**
+
+1. Branch from an up-to-date `develop` and apply the pending changesets:
+
+   ```sh
+   git switch develop && git pull
+   git switch -c release-<version>
+   npm run release:version
+   ```
+
+   This deletes the changesets, bumps the version in `package.json` and
+   `package-lock.json`, and prepends an entry to `CHANGELOG.md`. Edit the
+   entry if it reads badly, then commit.
+
+2. Open a PR from the release branch to `develop` and merge it.
+
+3. Open a PR from `develop` to `main`. CI fails unless the version went up,
+   `CHANGELOG.md` has a section for it, the lockfile agrees, no changesets are
+   left unapplied, and the tag does not exist yet.
+
+4. Merge. `.github/workflows/release.yml` runs the full suite, publishes to
+   npm with provenance, and pushes the tag `v<version>`.
+
+Do not tag a release by hand. The workflow treats an existing tag as proof the
+version is already published and skips the publish. If a release run fails
+partway, re-run it from the Actions tab: it skips a publish that already
+happened and only pushes the missing tag.
+
+`release.yml` publishes through npm trusted publishing, with no token, and the
+trust is bound to that filename, so don't rename it. It runs on Node 24 on
+purpose: trusted publishing needs npm 11.5.1 or later, which no Node 22 release
+bundles.
+
+**The first release** cannot go through the workflow alone, because trusted
+publishing is configured on a package's npm settings page, and the package
+does not exist on npm until it has been published once. As understood when
+this was written, the first time goes like this; check npm's documentation on
+trusted publishing before relying on it.
+
+1. Do steps 1 to 3 above for `0.1.0`, and merge the PR to `main`. The
+   workflow's publish step fails, since nothing trusts it yet. That is
+   expected, and it pushes no tag.
+2. From that merged commit on `main`, publish by hand:
+
+   ```sh
+   git switch main && git pull
+   npm ci && npm test
+   npm login
+   npm publish --access public
+   ```
+
+   This first version has no provenance statement, since provenance can only
+   be generated in CI.
+3. On npmjs.com, open the package's settings and add a trusted publisher:
+   GitHub Actions, repository `alexgs/claude-ai-transcript-export`, workflow
+   `release.yml`.
+4. Re-run the failed release workflow from the Actions tab. It finds `0.1.0`
+   already on npm, skips the publish, and pushes the `v0.1.0` tag.
+
+Every release after that is steps 1 to 4 above.
+
 ## License
 
 MIT
