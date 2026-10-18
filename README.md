@@ -122,6 +122,12 @@ authored that exists nowhere else:
 you uploaded appear as markers with their names. Attachments get a marker
 too; `attachments: inline` includes the text claude.ai extracted from them.
 
+**Some projects need a stripped tool back.** `keepTools` in the config names
+tools to keep as JSON while everything else stays as above. For example,
+`keepTools: [conversation_search, web_search]` keeps what Claude retrieved
+from earlier conversations and the web, which matters if the transcripts are
+evidence of where an idea came from.
+
 **Thinking is dropped**, as in `cctx`: a hypothesis the assistant talked
 itself out of reads like a proposal when found out of context.
 

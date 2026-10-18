@@ -26,6 +26,9 @@ exclude: []
 
 # Content policy.
 tools: strip          # strip | keep
+# Under strip, these tools are kept anyway, as JSON: for example
+# [conversation_search, web_search], to keep what Claude retrieved.
+keepTools: []
 thinking: drop        # drop | keep
 attachments: marker   # marker | inline
 skipEmpty: true

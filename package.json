@@ -1,6 +1,6 @@
 {
   "name": "@alexgsdev/claude-ai-transcript-export",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Extract selected conversations from a claude.ai account export into readable, committable markdown transcripts.",
   "keywords": [
     "claude",

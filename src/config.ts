@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { UsageError } from '@alexgsdev/claude-code-transcript-export';
+import { PRESERVED_TOOLS } from './blocks.js';
 import type {
   AttachmentPolicy,
   ContentPolicy,
@@ -44,6 +45,8 @@ export interface Config {
   tools: ToolPolicy;
   thinking: ThinkingPolicy;
   attachments: AttachmentPolicy;
+  /** Tools kept as JSON under `tools: strip` (§7.2). */
+  keepTools: string[];
   skipEmpty: boolean;
   index: IndexConfig;
 }
@@ -56,6 +59,7 @@ export const DEFAULT_CONFIG: Config = {
   tools: 'strip',
   thinking: 'drop',
   attachments: 'marker',
+  keepTools: [],
   skipEmpty: true,
   index: { enabled: true, preamble: null, listExcluded: 'count' },
 };
@@ -182,6 +186,7 @@ export function mergeConfig(raw: unknown): Config {
     projects: [],
     conversations: [],
     exclude: [],
+    keepTools: [],
     index: { ...DEFAULT_CONFIG.index },
   };
   if (raw === null || raw === undefined) return config;
@@ -214,6 +219,24 @@ export function mergeConfig(raw: unknown): Config {
         assertEnum(key, value);
         config[key] = value as never;
         break;
+      case 'keepTools': {
+        if (
+          !Array.isArray(value) ||
+          value.some((v) => typeof v !== 'string' || v === '')
+        ) {
+          throw new UsageError('`keepTools` must be a list of tool names.');
+        }
+        const preserved = (value as string[]).filter((v) => PRESERVED_TOOLS.has(v));
+        if (preserved.length > 0) {
+          throw new UsageError(
+            `\`keepTools\` names ${preserved.join(', ')}, which ${preserved.length === 1 ? 'is' : 'are'} ` +
+              'already preserved in readable form; listing it would render it twice. ' +
+              'Use `tools: keep` to see every call as JSON.',
+          );
+        }
+        config.keepTools = [...new Set(value as string[])];
+        break;
+      }
       case 'skipEmpty':
         if (typeof value !== 'boolean')
           throw new UsageError('`skipEmpty` must be true or false.');
@@ -294,5 +317,6 @@ export function contentPolicy(config: Config): ContentPolicy {
     tools: config.tools,
     thinking: config.thinking,
     attachments: config.attachments,
+    keepTools: config.keepTools,
   };
 }
