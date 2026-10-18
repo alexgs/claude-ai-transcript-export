@@ -1,5 +1,6 @@
 import { basename } from 'node:path';
 import { fence } from '@alexgsdev/claude-code-transcript-export';
+import { DocumentCollector, presentedPaths } from './documents.js';
 import type { ContentPolicy, RawBlock, RawMessage } from './types.js';
 import { DEFAULT_CONTENT_POLICY } from './types.js';
 
@@ -75,23 +76,22 @@ export function renderPresented(input: unknown): string | null {
   return names.length > 0 ? `> [presented: ${names.join(', ')}]` : null;
 }
 
-/**
- * Tools whose content is a document (§7.3). Phase 3 renders them through the
- * document model; until then they render nothing, which is what stripping
- * would do.
- */
+/** Tools whose content is a document, rendered through the model in §7.3. */
 export const DOCUMENT_TOOLS = new Set(['create_file', 'str_replace', 'artifacts']);
 
 /**
  * One block as markdown, or null when policy drops it (specification §7.1).
  *
  * `sources` collects the block's citation URLs for the turn's source list.
+ * `documents` records document operations for the second pass; without one,
+ * document tools render nothing, which is what stripping would do.
  */
 export function renderBlock(
   block: RawBlock,
   message: RawMessage,
   policy: ContentPolicy,
   sources: string[],
+  documents?: DocumentCollector,
 ): string | null {
   switch (block.type) {
     case 'text': {
@@ -117,7 +117,15 @@ export function renderBlock(
         return fence(JSON.stringify(block.input ?? null, null, 2), `tool_use:${name}`);
       }
       if (name === 'ask_user_input_v0') return renderQuestions(block.input);
-      if (name === 'present_files') return renderPresented(block.input);
+      if (name === 'present_files') {
+        const marker = renderPresented(block.input);
+        if (marker === null || documents === undefined) return marker;
+        return documents.present(presentedPaths(block.input), marker);
+      }
+      if (documents !== undefined) {
+        if (DOCUMENT_TOOLS.has(name)) return documents.record(block);
+        if (name === 'bash_tool') documents.shell(block.input);
+      }
       return null;
     }
 
@@ -164,13 +172,14 @@ export function renderBlock(
 export function renderMessage(
   message: RawMessage,
   policy: ContentPolicy = DEFAULT_CONTENT_POLICY,
+  documents?: DocumentCollector,
 ): RenderedMessage {
   const sources: string[] = [];
   const parts: string[] = [];
   const blocks = Array.isArray(message.content) ? message.content : [];
 
   for (const block of blocks) {
-    const part = renderBlock(block ?? {}, message, policy, sources);
+    const part = renderBlock(block ?? {}, message, policy, sources, documents);
     if (part !== null) parts.push(part);
   }
 
