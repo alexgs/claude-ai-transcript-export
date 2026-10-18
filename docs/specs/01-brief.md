@@ -172,6 +172,22 @@ the last run, so keeping it current means reading a short list. Notes are
 optional, or set once per project: a required note on each of a hundred
 conversations would be a chore.
 
+Ways to get the list:
+
+- **Ask Claude inside the project.** Its chat-history tools are scoped to the
+  project's conversations. They appear in this export as `recent_chats`
+  (14 calls) and `conversation_search` (520). Claude's reply can be pasted in
+  as-is, since anything that isn't a uuid is ignored.
+- **Copy links off the project page** in a browser.
+
+Two checks keep a captured list honest. **Every uuid in the list must exist
+in the export, or the run fails**, as in `protocol-era` (§5.1). That catches
+a uuid a model made up or copied wrongly. **Missing conversations are not
+caught by anything in the export**: history tools return results in pages,
+and a reply can stop early. `caitx` prints how many conversations each
+project's list resolved to, so that number can be compared once with the
+project page.
+
 This also makes "select by project" and "select by conversation" one
 mechanism, not two.
 
