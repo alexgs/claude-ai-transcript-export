@@ -185,6 +185,15 @@ The riskiest phase, so it stands alone. It is two passes:
 shell-touched, and against the real export the edit-level counts agree with
 spec §3: 878 applied, 60 unmatched, 1 ambiguous.
 
+*Result:* they agree exactly. Of 840 documents, 802 replay to a final version
+and 38 fall back; 288 carry the shell warning; 427 edits target files never
+created in their conversation, the 413 plus 14 of spec §3.
+
+The heading test changed shape. Fencing keeps a quoted `## [3] Human` inside
+the fence, but `cctx`'s read-back still sees it, and declines to measure that
+transcript's alternation rather than misreading it. The test checks that, and
+spec §7.3 says so.
+
 ## Phase 4: config, link lists and selection
 
 - `config.ts`: walk-up discovery of `.caitx.yaml`, defaults, unknown keys an

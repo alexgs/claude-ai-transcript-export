@@ -336,8 +336,16 @@ Each earlier operation leaves a marker in its own turn, pointing forward:
 The fence comes from `cctx`'s `fence`, which outlasts any run of backticks in
 the content. A document is always fenced, never inlined, even when it is
 markdown. An inlined markdown document brings its own headings into the
-transcript, and a heading shaped like `## [3] Human` would corrupt the turn
-headings that the index's carry-forward reads back (`cctx` spec 03).
+transcript's structure.
+
+Fencing does not hide a line shaped like `## [3] Human` from the index's
+read-back, though. `cctx`'s `readTurnHeadings` scans the whole body, fences
+included. What protects the index is that function's own rule: it believes
+the headings only when they number 1..n and agree with `turns:`. A quoted
+heading breaks that, so the transcript's alternation goes unmeasured rather
+than mismeasured, and its turn count still comes from the frontmatter
+(`cctx` spec 03). Skipping fenced blocks in `readTurnHeadings` would recover
+the measurement; that is a change to `cctx`, not made here.
 
 **When a replay fails, the document is not presented as final.** An edit
 whose `old_str` matches nowhere (60 in this export) or in more than one place
@@ -347,6 +355,9 @@ instead: the created text in its creation turn, and each later operation as a
 The run lists every document that fell back. A half-applied replay presented
 as the finished document would be worse than either form, because it looks
 right.
+
+**Where an earlier operation shares the final version's turn**, its marker
+says "final version below" rather than naming its own turn.
 
 **When the shell may have changed it, the header says so.** A clean replay
 proves only that the file-tool edits agree with each other. If any
