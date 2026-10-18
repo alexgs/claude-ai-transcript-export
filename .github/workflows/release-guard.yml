@@ -32,7 +32,15 @@ jobs:
           json_at() {
             git show "$1:$2" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8'))$3"
           }
-          base="$(json_at "$BASE" package.json .version)"
+          # Before the first release, main holds no package at all, so there
+          # is no released version to compare against. 0.0.0 stands for
+          # "nothing released yet"; every other check below reads only HEAD,
+          # and still applies.
+          if git cat-file -e "$BASE:package.json" 2>/dev/null; then
+            base="$(json_at "$BASE" package.json .version)"
+          else
+            base="0.0.0"
+          fi
           head="$(json_at "$HEAD" package.json .version)"
           failed=0
           fail() {
