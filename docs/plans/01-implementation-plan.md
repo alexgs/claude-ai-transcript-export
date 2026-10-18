@@ -112,7 +112,7 @@ against a new export, and the README says so.
 
 **Done when:** `caitx probe` against the 2026-10-18 export reproduces the
 survey: 1,286 conversations, 20,591 messages, the block-type counts in brief
-§3.3, 58 tool names, and 87 forked conversations with 106 fork points. Any
+§3.3, 57 tool names, and 87 forked conversations with 106 fork points. Any
 number that differs is resolved in the spec before phase 2 starts.
 
 ## Phase 2: the conversation model (pure)
@@ -143,7 +143,12 @@ phase; phase 3 gives them their real form.
 - A message with empty `content` and non-empty `text` renders from `text`.
 
 **Done when:** `probe` also reports turns and alternation breaks on the chosen
-branches, and against the real export that leaves exactly one break (spec §3).
+branches, and every break against the real export is explained.
+
+*Result:* 10 breaks, not the 1 this criterion first expected. That number came
+from the survey, which counted message pairs before content policy. The other
+nine are assistant replies with nothing visible, which spec §6.2 keeps as two
+human turns. Spec §3 has the breakdown.
 
 ## Phase 3: the document model (pure)
 
@@ -179,6 +184,15 @@ The riskiest phase, so it stands alone. It is two passes:
 **Done when:** `probe` reports documents rendered, clean, fallen back and
 shell-touched, and against the real export the edit-level counts agree with
 spec §3: 878 applied, 60 unmatched, 1 ambiguous.
+
+*Result:* they agree exactly. Of 840 documents, 802 replay to a final version
+and 38 fall back; 288 carry the shell warning; 427 edits target files never
+created in their conversation, the 413 plus 14 of spec §3.
+
+The heading test changed shape. Fencing keeps a quoted `## [3] Human` inside
+the fence, but `cctx`'s read-back still sees it, and declines to measure that
+transcript's alternation rather than misreading it. The test checks that, and
+spec §7.3 says so.
 
 ## Phase 4: config, link lists and selection
 
@@ -216,9 +230,13 @@ spec §3: 878 applied, 60 unmatched, 1 ambiguous.
 
 - **The headline invariant:** a second run over the same export writes zero
   files.
-- **The stronger one:** a newer fixture export, in which a conversation's
-  `updated_at` moved and it gained an abandoned branch, writes nothing for
-  that conversation (§9).
+- **The stronger one:** a newer fixture export, in which only a
+  conversation's `updated_at` moved, writes nothing for that conversation
+  (§9).
+- A conversation that gained a branch is rewritten. *Corrected while
+  building:* this plan first grouped a gained branch with the zero-write
+  case, but a branch changes `branches_dropped`, and a regenerated reply is
+  newer, so it becomes the rendered branch. Both are real changes.
 - A renamed conversation's old file is deleted and reported.
 - An excluded conversation's transcript is deleted and reported.
 - A deselected conversation's transcript is kept, kept in the index, and
@@ -248,6 +266,13 @@ spec §3: 878 applied, 60 unmatched, 1 ambiguous.
   already exists, so `0.1.0` might need a token-based publish before
   `release.yml` can take over. Confirm against npm's documentation at the
   time rather than relying on this note.
+
+*Progress, 2026-10-18:* `init`, the README, the snapshot test over
+`test/fixtures/export/rich.json`, and the `npm pack` install check are done.
+The installed binary, run through its `node_modules/.bin` symlink, probed the
+real export, and extracted ten conversations twice, the second run writing
+nothing. The first publish and trusted-publishing setup remain, and need the
+package owner.
 
 ## Phase 7: acceptance
 

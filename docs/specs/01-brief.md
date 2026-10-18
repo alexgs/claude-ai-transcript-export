@@ -94,7 +94,7 @@ message whose `content` is empty, and say so if that happens.
 | --- | --- | --- |
 | `text` | 24,931 | May carry `citations` (1,797 `web_search_citation`, with `url` and character offsets) |
 | `thinking` | 9,791 | |
-| `tool_use` | 8,898 | 58 distinct tool names (§7) |
+| `tool_use` | 8,898 | 57 distinct tool names (§7). An earlier count of 58 included an empty `name` that appears only on some `tool_result` blocks |
 | `tool_result` | 8,889 | `name`, `is_error` (234 true), `content[]`, plus `display_content` for the UI |
 | `token_budget` | 1,119 | Harness bookkeeping |
 | `injected_prompt_block` | 475 | Always on `human` messages; harness-injected context, not authored (§7) |

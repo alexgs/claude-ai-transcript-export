@@ -36,6 +36,11 @@ the rules below depend on:
   on the chosen branches (brief §6), 14 are two assistant messages in a row,
   typically a reply that continued into a second message. One is two human
   messages.
+- **After content policy, 10 alternation breaks remain** on the chosen
+  branches, measured by `caitx probe` (§6.2). One is two human messages in a
+  row. The other nine are an assistant reply with nothing visible between two
+  human turns: four replies have no content at all, three are only tool
+  calls, which are stripped, and two hold only whitespace text.
 - **`ask_user_input_v0` records no answer.** Its `tool_use` input holds
   `questions[]`, each with `question`, `options[]` and sometimes `type`. Its
   `tool_result` repeats the questions back as JSON. The author's answer
@@ -53,6 +58,9 @@ the rules below depend on:
   created through `bash_tool`.
 - **349 `bash_tool` calls name a file `create_file` made**, so a replay that
   applies cleanly can still miss a change made in the shell.
+- **A `tool_result`'s `name` can be empty.** It is the only name found on
+  results and never on calls, so a result is matched to its call by
+  `tool_use_id`, never by `name`.
 - **`present_files`** (639) takes `filepaths[]`. Its result lists each file's
   `file_path`, `name`, `mime_type` and usually a `uuid`.
 
@@ -88,7 +96,9 @@ Zips are read in place; nothing is extracted to disk. The zip reader is the
 one new runtime dependency (§13).
 
 One `conversations.json` is a single 211 MB JSON array in this export, parsed
-whole. That fits in Node's default heap on a desktop machine. A streaming
+whole. Reading the whole 2026-10-18 export with `caitx probe` peaked at
+1,147 MB of resident memory and took 4.2 seconds, which fits a desktop
+machine comfortably. A streaming
 parser is the fix if a larger account does not, and is not built until one
 does (§15).
 
@@ -221,7 +231,12 @@ A turn is one exchange, as in `cctx` §7.1:
   on the chosen branches.
 - **An assistant message with nothing visible** after policy contributes
   nothing. When that leaves two human turns adjacent, they stay two turns,
-  and the index counts the break.
+  and the index counts the break. This happens nine times in the observed
+  export (§3). The alternative, a placeholder turn such as `> [no visible
+  reply]`, would keep the alternation intact and tell a reader that the
+  assistant did answer. It is not adopted, so that turn counts mean the same
+  thing here as in `cctx`, but it is the obvious change if the breaks prove
+  confusing.
 
 Turn numbers are stable only while these rules are. A change here renumbers
 transcripts, which the index says every time, as in `cctx` §7.4.
@@ -321,8 +336,16 @@ Each earlier operation leaves a marker in its own turn, pointing forward:
 The fence comes from `cctx`'s `fence`, which outlasts any run of backticks in
 the content. A document is always fenced, never inlined, even when it is
 markdown. An inlined markdown document brings its own headings into the
-transcript, and a heading shaped like `## [3] Human` would corrupt the turn
-headings that the index's carry-forward reads back (`cctx` spec 03).
+transcript's structure.
+
+Fencing does not hide a line shaped like `## [3] Human` from the index's
+read-back, though. `cctx`'s `readTurnHeadings` scans the whole body, fences
+included. What protects the index is that function's own rule: it believes
+the headings only when they number 1..n and agree with `turns:`. A quoted
+heading breaks that, so the transcript's alternation goes unmeasured rather
+than mismeasured, and its turn count still comes from the frontmatter
+(`cctx` spec 03). Skipping fenced blocks in `readTurnHeadings` would recover
+the measurement; that is a change to `cctx`, not made here.
 
 **When a replay fails, the document is not presented as final.** An edit
 whose `old_str` matches nowhere (60 in this export) or in more than one place
@@ -332,6 +355,9 @@ instead: the created text in its creation turn, and each later operation as a
 The run lists every document that fell back. A half-applied replay presented
 as the finished document would be worse than either form, because it looks
 right.
+
+**Where an earlier operation shares the final version's turn**, its marker
+says "final version below" rather than naming its own turn.
 
 **When the shell may have changed it, the header says so.** A clean replay
 proves only that the file-tool edits agree with each other. If any
@@ -464,7 +490,10 @@ As `cctx` §9. The renderer is pure. `writeIfChanged` renders with the
 changed. **A rerun over the same export writes zero files.**
 
 The stronger property is the one that matters here: **a newer export in which
-a conversation did not change writes nothing for it.** That is why `updated`
+a conversation did not change writes nothing for it.** "Did not change" means
+what is rendered: a moved `updated_at` alone writes nothing, while a new
+branch does, since it changes `branches_dropped` and, being newer, usually
+the branch rendered. That is why `updated`
 comes from the rendered branch rather than from `updated_at` (§8.2), and why
 nothing in the output reads a value that moves without the content moving.
 
@@ -576,8 +605,8 @@ As `cctx` §13, plus:
 
 ## 15. Open questions
 
-1. **Heap size.** A 211 MB `conversations.json` parses in the default heap.
-   The account size at which it stops doing so is unknown, and so is whether
+1. **Heap size.** A 211 MB `conversations.json` peaks at 1,147 MB resident
+   (§4.2). The account size at which that stops fitting is unknown, and so is whether
    exports split conversations into more parts before that point.
 2. **Artifacts in `frames-*.zip`.** The newer artifact system stores its own
    versions there, with no link to a conversation in `artifact.json`. If a

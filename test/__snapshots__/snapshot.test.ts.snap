@@ -1,0 +1,212 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the rich fixture > extracts as expected > how-far-apart-are-the-jump-gates-in-the-outer-belt-roughly-s--f1c0ffee.md 1`] = `
+"---
+title: How far apart are the jump gates in the outer belt, roughly speaking, given…
+session_id: f1c0ffee-0000-4000-8000-000000000002
+project: Fixture
+source: claude-ai
+created: <local date>
+updated: <local date>
+turns: 2
+extracted: 2026-10-18
+url: https://claude.ai/chat/f1c0ffee-0000-4000-8000-000000000002
+project_uuid: 0190f1c5-0000-7000-8000-000000000001
+title_derived: true
+---
+
+# How far apart are the jump gates in the outer belt, roughly speaking, given…
+
+## [1] Human
+
+How far apart are the jump gates in the outer belt, roughly speaking, given everything we decided?
+
+## [2] Assistant
+
+About a week's sail.
+"
+`;
+
+exports[`the rich fixture > extracts as expected > index.md 1`] = `
+"# claude.ai conversations
+
+Conversations exported from claude.ai by \`caitx\`.
+This file is generated; edits to it will be overwritten.
+
+Each transcript is one branch of its conversation. Where a reply was edited
+or regenerated, the latest version is shown, and \`branches_dropped\` in the
+frontmatter says how many others there were. A turn is one exchange, with
+consecutive assistant messages joined. Tool calls are stripped, except for
+documents Claude wrote, which appear in their final version, and questions it
+asked. Turn numbers are stable only while these rules are.
+
+Turns alternate without exception: odd turns are the author, even turns the assistant. Checked on generation, not assumed — so the speaker of turn N is known from N alone.
+
+| Created | Title | Turns | Conversation |
+| --- | --- | --- | --- |
+| <local date> | [Rich fixture](https://claude.ai/chat/f1c0ffee-0000-4000-8000-000000000001) | 4 | \`f1c0ffee-0000-4000-8000-000000000001\` |
+| <local date> | [How far apart are the jump gates in the outer belt, roughly speaking, given…](https://claude.ai/chat/f1c0ffee-0000-4000-8000-000000000002) | 2 | \`f1c0ffee-0000-4000-8000-000000000002\` |
+"
+`;
+
+exports[`the rich fixture > extracts as expected > rich-fixture--f1c0ffee.md 1`] = `
+"---
+title: Rich fixture
+session_id: f1c0ffee-0000-4000-8000-000000000001
+project: Fixture
+source: claude-ai
+created: <local date>
+updated: <local date>
+turns: 4
+extracted: 2026-10-18
+url: https://claude.ai/chat/f1c0ffee-0000-4000-8000-000000000001
+project_uuid: 0190f1c5-0000-7000-8000-000000000001
+branches_dropped: 1
+---
+
+# Rich fixture
+
+## [1] Human
+
+Draft the faction guide.
+
+> [image: shot.png]
+
+> [attachment: notes.md, 2 KB]
+
+> [file: extra.txt]
+
+## [2] Assistant
+
+Here is a draft.
+
+> [document: faction-guide.md — created; final version in turn 4]
+
+**Which tone?**
+
+- Grim
+- Bright
+
+Continued in a second message.
+
+> [presented: faction-guide.md]
+
+Sources:
+- https://example.org/pirates
+- https://example.org/navies
+
+## [3] Human
+
+Grim. Tighten it.
+
+> [document: Setting Spec]
+
+> [flagged by claude.ai]
+
+## [4] Assistant
+
+**\`/mnt/user-data/outputs/faction-guide.md\`** — created in turn 2, edited once, final version. Also touched by shell commands this transcript does not show; this may not be the final file.
+
+\`\`\`markdown
+# Factions
+
+The Navy, grimly.
+\`\`\`
+
+**\`/home/claude/work/broken.md\`** — created in turn 4. Its later edits did not all apply, so it is shown as created, with each edit as a diff.
+
+\`\`\`markdown
+alpha
+\`\`\`
+
+**\`/home/claude/work/broken.md\`** — edited.
+
+\`\`\`diff
+- missing
++ x
+\`\`\`
+
+**\`/mnt/user-data/uploads/notes.md\`** — edited; no earlier version is in this conversation.
+
+\`\`\`diff
+- Pirates.
++ Corsairs.
+\`\`\`
+
+**(unnamed file)** — created in turn 4.
+
+\`\`\`
+no path at all
+\`\`\`
+
+> [document: Naval Ranks — created; final version below]
+
+**Naval Ranks (artifact)** — created in turn 4, edited once, final version.
+
+\`\`\`markdown
+Ensign, Lieutenant
+\`\`\`
+
+> [unhandled block type: hologram]
+
+Tightened.
+"
+`;
+
+exports[`the rich fixture > extracts as expected 1`] = `
+[
+  "<date>--rich-fixture--f1c0ffee.md",
+  "<date>--how-far-apart-are-the-jump-gates-in-the-outer-belt-roughly-s--f1c0ffee.md",
+  "index.md",
+]
+`;
+
+exports[`the rich fixture > probes as expected 1`] = `
+"conversations: 2 (0 with no messages)
+messages: 9
+forked conversations: 1, fork points: 1
+messages with an unknown parent: 0
+
+turn model, on the chosen branches:
+  turns: 6
+  alternation breaks: 0
+  conversations not starting with a human turn: 0
+  empty human messages (not turns): 1
+  messages rendered from text: 0
+  branches dropped: 1
+  unreadable conversations: 0
+
+documents (create_file, str_replace, artifacts):
+  documents: 3
+  replayed to a final version: 2
+  fell back to created text and diffs: 1
+  touched by shell commands: 1
+  edits to files never created here: 1
+  file edits applied / unmatched / ambiguous: 1 / 1 / 0
+
+senders:
+        5  assistant
+        4  human
+
+block types:
+       11  tool_use
+        9  tool_result
+        8  text
+        1  document
+        1  flag
+        1  hologram
+        1  image
+        1  injected_prompt_block
+        1  thinking
+        1  token_budget
+
+tool names (6):
+        3  create_file
+        3  str_replace
+        2  artifacts
+        1  ask_user_input_v0
+        1  bash_tool
+        1  present_files
+
+unhandled block types: hologram"
+`;
