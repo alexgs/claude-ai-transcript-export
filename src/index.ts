@@ -14,10 +14,22 @@ export {
   readExport,
   type ExportInput,
 } from './input.js';
+export { formatProbe, probeConversations, type ProbeReport } from './probe.js';
+export { ROOT_PARENT, TreeError, chooseBranch, type Branch } from './tree.js';
+export { buildTurns, type BuiltTurns } from './turns.js';
 export {
-  ROOT_PARENT,
-  formatProbe,
-  probeConversations,
-  type ProbeReport,
-} from './probe.js';
-export type { RawBlock, RawConversation, RawMessage } from './types.js';
+  humanSize,
+  renderMessage,
+  renderQuestions,
+  type RenderedMessage,
+} from './blocks.js';
+export { DEFAULT_CONTENT_POLICY } from './types.js';
+export type {
+  AttachmentPolicy,
+  ContentPolicy,
+  RawBlock,
+  RawConversation,
+  RawMessage,
+  ThinkingPolicy,
+  ToolPolicy,
+} from './types.js';

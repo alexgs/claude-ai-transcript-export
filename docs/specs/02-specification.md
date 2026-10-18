@@ -36,6 +36,11 @@ the rules below depend on:
   on the chosen branches (brief §6), 14 are two assistant messages in a row,
   typically a reply that continued into a second message. One is two human
   messages.
+- **After content policy, 10 alternation breaks remain** on the chosen
+  branches, measured by `caitx probe` (§6.2). One is two human messages in a
+  row. The other nine are an assistant reply with nothing visible between two
+  human turns: four replies have no content at all, three are only tool
+  calls, which are stripped, and two hold only whitespace text.
 - **`ask_user_input_v0` records no answer.** Its `tool_use` input holds
   `questions[]`, each with `question`, `options[]` and sometimes `type`. Its
   `tool_result` repeats the questions back as JSON. The author's answer
@@ -226,7 +231,12 @@ A turn is one exchange, as in `cctx` §7.1:
   on the chosen branches.
 - **An assistant message with nothing visible** after policy contributes
   nothing. When that leaves two human turns adjacent, they stay two turns,
-  and the index counts the break.
+  and the index counts the break. This happens nine times in the observed
+  export (§3). The alternative, a placeholder turn such as `> [no visible
+  reply]`, would keep the alternation intact and tell a reader that the
+  assistant did answer. It is not adopted, so that turn counts mean the same
+  thing here as in `cctx`, but it is the obvious change if the breaks prove
+  confusing.
 
 Turn numbers are stable only while these rules are. A change here renumbers
 transcripts, which the index says every time, as in `cctx` §7.4.
